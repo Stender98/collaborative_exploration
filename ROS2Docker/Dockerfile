@@ -26,6 +26,8 @@ RUN colcon mixin add default \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-ros-base=0.11.0-1* \
     ros-jazzy-slam-toolbox \
+    ros-jazzy-rviz2 \
+    ros-jazzy-rviz-default-plugins \
     && rm -rf /var/lib/apt/lists/*
 
 # Add setup.bash to bashrc

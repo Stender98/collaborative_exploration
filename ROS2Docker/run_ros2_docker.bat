@@ -9,7 +9,7 @@ REM Set DISPLAY environment variable for Docker
 set DISPLAY=host.docker.internal:0.0
 
 REM Run ROS 2 Jazzy Docker container with X11 forwarding and networking
-docker run -it -p 5005:5005 --net=host --name ros2_slam ^
+docker run -it -p 5005:5005 --net=host --name ros2_slam --gpus all ^
     -e DISPLAY=%DISPLAY% ^
     -e QT_X11_NO_MITSHM=1 ^
     -v %CD%:/workspace ^
