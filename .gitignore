@@ -141,6 +141,7 @@ build/
 *.log
 *.tmp
 *.old
+*.jpg
 
 # Webots controller and compiled files
 controllers/*/build/

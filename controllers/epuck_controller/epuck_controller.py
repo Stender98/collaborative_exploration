@@ -1,17 +1,25 @@
 """epuck_controller."""
 from controller import Robot, Keyboard
-import pygame, slam
+import socket
+import struct
 
 TIME_STEP = 64  #Webots simulation time step
 MAX_SPEED = 6.28  #E-puck max speed
 
 #system status
-DEBUG = True
+DEBUG = False
 ENABLE_LIDAR = True
 ENABLE_CAMERA = True
 ENABLE_DIST = False
 
+# UDP settings
+UDP_IP = "localhost"  # Change this to your actual Docker container IP
+UDP_PORT = 5005
+
 print("Controller initiated, starting the robot.")
+
+# Create UDP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 #robot and IO devices
 robot = Robot()
@@ -30,7 +38,7 @@ def set_speed(left, right):
     left_motor.setVelocity(left)
     right_motor.setVelocity(right)
 
-#distanceSensor
+#distance sensor
 if ENABLE_DIST:
     ps = []
     psNames = [
@@ -56,8 +64,6 @@ if ENABLE_LIDAR:
     fov = lidar.getFov()  #field of view (should be ~360°)
     angle_step = fov / num_rays  #angle per step
     print(f"Lidar initialized: {num_rays} rays, FOV: {fov:.2f} rad, Angle step: {angle_step:.4f} rad")
-
-    slam_map = slam.SLAM()  #initialize SLAM algorithm each grid is 5 cm
 
 print("Controller started, control the robot with arrow keys.")
 try:
@@ -89,22 +95,21 @@ try:
             right_speed = -MAX_SPEED / 2
 
         set_speed(left_speed, right_speed)
-        
-        #read Lidar data for debugging
+
         if ENABLE_LIDAR:
             lidar_data = lidar.getRangeImage()
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-            slam_map.update(lidar_data)
             
+            #pack data into binary format
+            data = struct.pack(f'{len(lidar_data)}f', *lidar_data)
+
+            #send over UDP to Docker container running ROS2 and SLAM
+            sock.sendto(data, (UDP_IP, UDP_PORT))
+
             if DEBUG:
-                print(lidar_data)
-                #forward_dist = lidar_data[num_rays // 2]  # Front (~180°)
-                #left_dist = lidar_data[num_rays // 4]  # Left (~90°)
-                #right_dist = lidar_data[3 * num_rays // 4]  # Right (~270°)
-                #print(f"Lidar: Forward={forward_dist:.2f}, Left={left_dist:.2f}, Right={right_dist:.2f}")
+                forward_dist = lidar_data[num_rays // 2]  # Front (~180°)
+                left_dist = lidar_data[num_rays // 4]  # Left (~90°)
+                right_dist = lidar_data[3 * num_rays // 4]  # Right (~270°)
+                print(f"Lidar: Forward={forward_dist:.2f}, Left={left_dist:.2f}, Right={right_dist:.2f}")
 
 except KeyboardInterrupt:
     print("Controller interrupted, stopping the robot.")
@@ -114,7 +119,6 @@ finally:
     set_speed(0, 0)  #stop motors
     if ENABLE_LIDAR:
         lidar.disable()
-        pygame.quit()
     if ENABLE_CAMERA:
         camera.disable()
     if ENABLE_DIST:
