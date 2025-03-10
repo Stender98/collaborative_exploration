@@ -22,3 +22,19 @@ ros2 topic echo /scan
 
 #RUNNING RViz2
 rviz2
+
+#RTAB-Map dependencies
+sudo apt update && sudo apt install -y \
+  ros-jazzy-cv-bridge \
+  ros-jazzy-grid-map-core \
+  ros-jazzy-gtsam \
+  ros-jazzy-libg2o \
+  ros-jazzy-libpointmatcher \
+  ros-jazzy-qt-gui-cpp
+
+sudo apt-get install -y \
+  ros-jazzy-rtabmap \
+  ros-jazzy-rtabmap-viz \
+  ros-jazzy-rtabmap-slam 
+
+ros2 run rtabmap_viz rtabmap_viz _frame_id:=base_link

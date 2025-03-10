@@ -5,12 +5,13 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/gctronic/e-puck/protos/E-puck.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/devices/robotis/protos/RobotisLds01.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Parquetry.proto"
 
 WorldInfo {
 }
 Viewpoint {
-  orientation 0 1 0 1.5758115249939708
-  position 0.008691848609504508 -8.470329472543003e-22 4.233087186446732
+  orientation 0.059271775533759334 0.9866772054498792 -0.15150890690217633 0.7549575631280271
+  position -3.2059759130534164 0.4027895932241503 2.64329387939998
   follow "e-puck"
   followType "Mounted Shot"
 }
@@ -26,5 +27,8 @@ E-puck {
   ]
 }
 RectangleArena {
-  floorSize 100 100
+  floorSize 2 2
+  floorAppearance Parquetry {
+    type "dark strip"
+  }
 }
