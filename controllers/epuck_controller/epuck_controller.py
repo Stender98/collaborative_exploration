@@ -106,7 +106,7 @@ def publish_odom(clock):
     left_speed = left_motor.getVelocity()
     right_speed = right_motor.getVelocity()
 
-    wheel_radius = 0.041  #adjust for your robot
+    wheel_radius = 0.0205  #adjust for your robot
     wheel_distance = 0.053  #distance between wheels
 
     v_left = left_speed * wheel_radius
