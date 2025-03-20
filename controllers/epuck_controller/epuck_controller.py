@@ -87,27 +87,26 @@ def publish_scan(clock):
     msg.header.stamp = clock
     msg.header.frame_id = "laser"
 
-    msg.angle_min = -np.pi # Assume full 360° lidar
+    msg.angle_min = -np.pi #assume full 360° lidar
     msg.angle_max = np.pi
     msg.angle_increment = np.pi * 2 / len(ranges)
-    msg.range_min = 0.1  # Adjust for your LiDAR specs
+    msg.range_min = 0.1  #adjust for your LiDAR specs
     msg.range_max = 3.5
     msg.ranges = ranges
 
     lidar_publisher.publish(msg)
 
 def publish_odom(clock):
-    global last_time, x, y, theta # Update global variables
+    global last_time, x, y, theta #update global variables
     current_time = robot.getTime()
     dt = current_time - last_time
     last_time = current_time
 
-    # Get wheel velocities
     left_speed = left_motor.getVelocity()
     right_speed = right_motor.getVelocity()
 
-    wheel_radius = 0.041  # Adjust for your robot
-    wheel_distance = 0.053  # Distance between wheels
+    wheel_radius = 0.041  #adjust for your robot
+    wheel_distance = 0.053  #distance between wheels
 
     v_left = left_speed * wheel_radius
     v_right = right_speed * wheel_radius
@@ -119,7 +118,7 @@ def publish_odom(clock):
     y += v * dt * np.sin(theta)
     theta += omega * dt
 
-    # Create Odometry message
+    #create odometry message
     odom_msg = Odometry()
     odom_msg.header.stamp = clock
 
@@ -128,14 +127,14 @@ def publish_odom(clock):
 
     odom_msg.pose.pose.position.x = x
     odom_msg.pose.pose.position.y = y
-    odom_msg.pose.pose.position.z = 0.0
+    odom_msg.pose.pose.position.z = 0.0 
 
     q = tf_transformations.quaternion_from_euler(0, 0, theta)
     odom_msg.pose.pose.orientation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
 
     odom_publisher.publish(odom_msg)
 
-    # Broadcast TF transform
+    #broadcast TF transform
     transform = TransformStamped()
     transform.header.stamp = odom_msg.header.stamp
     transform.header.frame_id = "odom"
@@ -145,7 +144,7 @@ def publish_odom(clock):
     transform.transform.translation.z = 0.0
     transform.transform.rotation = odom_msg.pose.pose.orientation
 
-    # Assuming laser is at (0.1, 0.0, 0.0) relative to base_link
+    #assuming laser is at (0.1, 0.0, 0.0) relative to base_footprint
     laser_transform = TransformStamped()
     laser_transform.header.stamp = odom_msg.header.stamp
     laser_transform.header.frame_id = "base_footprint"
@@ -153,7 +152,7 @@ def publish_odom(clock):
     laser_transform.transform.translation.x = 0.1
     laser_transform.transform.translation.y = 0.0
     laser_transform.transform.translation.z = 0.0
-    laser_transform.transform.rotation.w = 1.0  # No rotation
+    laser_transform.transform.rotation.w = 1.0  #no rotation
     tf_broadcaster.sendTransform(laser_transform)
 
 
@@ -179,7 +178,7 @@ try:
         left_speed = 0
         right_speed = 0
 
-        #key control
+        #key control logic
         if key == Keyboard.UP:
             left_speed = MAX_SPEED 
             right_speed = MAX_SPEED
@@ -194,7 +193,8 @@ try:
             right_speed = -MAX_SPEED * 0.3
 
         set_speed(left_speed, right_speed)
-
+        
+        #publish ROS messages
         if ENABLE_LIDAR:
             clock_now = publicist.get_clock().now().to_msg()
             run_publicist(clock_now)
@@ -204,7 +204,7 @@ except KeyboardInterrupt:
 
 finally:
     print("Cleaning up...")
-    set_speed(0, 0)  #stop motors
+    set_speed(0, 0) 
     if ENABLE_LIDAR:
         lidar.disable()
     if ENABLE_CAMERA:
