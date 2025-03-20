@@ -10,8 +10,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation 0.059271775533759334 0.9866772054498792 -0.15150890690217633 0.7549575631280271
-  position -3.2059759130534164 0.4027895932241503 2.64329387939998
+  orientation -0.049282216761463334 0.9848228280222497 0.1664189307661077 0.5841926299840298
+  position -0.4372759781339189 -0.02175603524321276 0.3029569773190712
   follow "e-puck"
   followType "Mounted Shot"
 }
@@ -20,7 +20,10 @@ TexturedBackground {
 TexturedBackgroundLight {
 }
 E-puck {
-  controller "epuck_controller"
+  controller "<extern>"
+  controllerArgs [
+    ""
+  ]
   turretSlot [
     RobotisLds01 {
     }

@@ -1,30 +1,37 @@
 """epuck_controller."""
-from controller import Robot, Keyboard
-import socket
-import struct
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Quaternion, TransformStamped
+import tf_transformations
+import tf2_ros
+from controller import Robot, Keyboard, Lidar
+import numpy as np
 
-TIME_STEP = 64  #Webots simulation time step
+
+TIME_STEP = 128  #Webots simulation time step
 MAX_SPEED = 6.28  #E-puck max speed
 
 #system status
 DEBUG = False
 ENABLE_LIDAR = True
-ENABLE_CAMERA = True
+ENABLE_CAMERA = False
 ENABLE_DIST = False
 
-# UDP settings
-UDP_IP = "localhost"  # Change this to your actual Docker container IP
-UDP_PORT = 5005
-
 print("Controller initiated, starting the robot.")
-
-# Create UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+rclpy.init()
 
 #robot and IO devices
 robot = Robot()
 keyboard = Keyboard()
 keyboard.enable(TIME_STEP)
+
+#robot state
+x = 0.0
+y = 0.0
+theta = 0.0
+last_time = robot.getTime()
 
 #motors
 left_motor = robot.getDevice("left wheel motor")
@@ -37,6 +44,12 @@ right_motor.setVelocity(0.0)
 def set_speed(left, right):
     left_motor.setVelocity(left)
     right_motor.setVelocity(right)
+
+#ros2 publisher node
+publicist = rclpy.create_node('epuck_controller')
+odom_publisher = publicist.create_publisher(Odometry, '/odom', 10)
+lidar_publisher = publicist.create_publisher(LaserScan, '/scan', 10)
+tf_broadcaster = tf2_ros.TransformBroadcaster(publicist)
 
 #distance sensor
 if ENABLE_DIST:
@@ -65,6 +78,92 @@ if ENABLE_LIDAR:
     angle_step = fov / num_rays  #angle per step
     print(f"Lidar initialized: {num_rays} rays, FOV: {fov:.2f} rad, Angle step: {angle_step:.4f} rad")
 
+def publish_scan(clock):
+    ranges = lidar.getRangeImage()
+    if ranges is None:
+        return
+
+    msg = LaserScan()
+    msg.header.stamp = clock
+    msg.header.frame_id = "laser"
+
+    msg.angle_min = -np.pi # Assume full 360° lidar
+    msg.angle_max = np.pi
+    msg.angle_increment = np.pi * 2 / len(ranges)
+    msg.range_min = 0.1  # Adjust for your LiDAR specs
+    msg.range_max = 3.5
+    msg.ranges = ranges
+
+    lidar_publisher.publish(msg)
+
+def publish_odom(clock):
+    global last_time, x, y, theta # Update global variables
+    current_time = robot.getTime()
+    dt = current_time - last_time
+    last_time = current_time
+
+    # Get wheel velocities
+    left_speed = left_motor.getVelocity()
+    right_speed = right_motor.getVelocity()
+
+    wheel_radius = 0.205  # Adjust for your robot
+    wheel_distance = 0.53  # Distance between wheels
+
+    v_left = left_speed * wheel_radius
+    v_right = right_speed * wheel_radius
+
+    v = (v_right + v_left) / 2.0
+    omega = (v_right - v_left) / wheel_distance
+
+    x += v * dt * np.cos(theta)
+    y += v * dt * np.sin(theta)
+    theta += omega * dt
+
+    # Create Odometry message
+    odom_msg = Odometry()
+    odom_msg.header.stamp = clock
+
+    odom_msg.header.frame_id = "odom"
+    odom_msg.child_frame_id = "base_footprint"
+
+    odom_msg.pose.pose.position.x = x
+    odom_msg.pose.pose.position.y = y
+    odom_msg.pose.pose.position.z = 0.0
+
+    q = tf_transformations.quaternion_from_euler(0, 0, theta)
+    odom_msg.pose.pose.orientation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
+
+    odom_publisher.publish(odom_msg)
+
+    # Broadcast TF transform
+    transform = TransformStamped()
+    transform.header.stamp = odom_msg.header.stamp
+    transform.header.frame_id = "odom"
+    transform.child_frame_id = "base_footprint"
+    transform.transform.translation.x = x
+    transform.transform.translation.y = y
+    transform.transform.translation.z = 0.0
+    transform.transform.rotation = odom_msg.pose.pose.orientation
+
+    # Assuming laser is at (0.1, 0.0, 0.0) relative to base_link
+    laser_transform = TransformStamped()
+    laser_transform.header.stamp = odom_msg.header.stamp
+    laser_transform.header.frame_id = "base_footprint"
+    laser_transform.child_frame_id = "laser"
+    laser_transform.transform.translation.x = 0.1
+    laser_transform.transform.translation.y = 0.0
+    laser_transform.transform.translation.z = 0.0
+    laser_transform.transform.rotation.w = 1.0  # No rotation
+    tf_broadcaster.sendTransform(laser_transform)
+
+
+    tf_broadcaster.sendTransform(transform)
+
+def run_publicist(clock):
+    publish_scan(clock)
+    publish_odom(clock)
+
+#main loop
 print("Controller started, control the robot with arrow keys.")
 try:
     while robot.step(TIME_STEP) != -1:
@@ -93,23 +192,21 @@ try:
         elif key == Keyboard.RIGHT:
             left_speed = MAX_SPEED / 2
             right_speed = -MAX_SPEED / 2
-
+        elif key == Keyboard.SHIFT + Keyboard.UP: #stop simulation
+            break
+        
         set_speed(left_speed, right_speed)
 
         if ENABLE_LIDAR:
-            lidar_data = lidar.getRangeImage()
-            
-            #pack data into binary format
-            data = struct.pack(f'{len(lidar_data)}f', *lidar_data)
-
-            #send over UDP to Docker container running ROS2 and SLAM
-            sock.sendto(data, (UDP_IP, UDP_PORT))
-
-            if DEBUG:
-                forward_dist = lidar_data[num_rays // 2]  # Front (~180°)
-                left_dist = lidar_data[num_rays // 4]  # Left (~90°)
-                right_dist = lidar_data[3 * num_rays // 4]  # Right (~270°)
-                print(f"Lidar: Forward={forward_dist:.2f}, Left={left_dist:.2f}, Right={right_dist:.2f}")
+            clock_now = publicist.get_clock().now().to_msg()
+            run_publicist(clock_now)
+            #ranges = lidar.getRangeImage()
+            #
+            #if DEBUG:
+            #    forward_dist = ranges[num_rays // 2]  # Front (~180°)
+            #    left_dist = ranges[num_rays // 4]  # Left (~90°)
+            #    right_dist = ranges[3 * num_rays // 4]  # Right (~270°)
+            #    print(f"Lidar: Forward={forward_dist:.2f}, Left={left_dist:.2f}, Right={right_dist:.2f}")
 
 except KeyboardInterrupt:
     print("Controller interrupted, stopping the robot.")
@@ -124,4 +221,5 @@ finally:
     if ENABLE_DIST:
         for i in range(8):
             ps[i].disable()
+    rclpy.shutdown()
     print("Shutdown complete.")
