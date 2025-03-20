@@ -79,10 +79,10 @@ if ENABLE_LIDAR:
     print(f"Lidar initialized: {num_rays} rays, FOV: {fov:.2f} rad, Angle step: {angle_step:.4f} rad")
 
 def publish_scan(clock):
-    ranges = lidar.getRangeImage()
+    ranges = list(reversed(lidar.getRangeImage()))
     if ranges is None:
         return
-
+    
     msg = LaserScan()
     msg.header.stamp = clock
     msg.header.frame_id = "laser"
@@ -93,6 +93,7 @@ def publish_scan(clock):
     msg.range_min = 0.1  #adjust for your LiDAR specs
     msg.range_max = 3.5
     msg.ranges = ranges
+
 
     lidar_publisher.publish(msg)
 
