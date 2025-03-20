@@ -106,8 +106,8 @@ def publish_odom(clock):
     left_speed = left_motor.getVelocity()
     right_speed = right_motor.getVelocity()
 
-    wheel_radius = 0.205  # Adjust for your robot
-    wheel_distance = 0.53  # Distance between wheels
+    wheel_radius = 0.041  # Adjust for your robot
+    wheel_distance = 0.053  # Distance between wheels
 
     v_left = left_speed * wheel_radius
     v_right = right_speed * wheel_radius
@@ -181,33 +181,24 @@ try:
 
         #key control
         if key == Keyboard.UP:
-            left_speed = MAX_SPEED
+            left_speed = MAX_SPEED 
             right_speed = MAX_SPEED
         elif key == Keyboard.DOWN:
             left_speed = -MAX_SPEED
             right_speed = -MAX_SPEED
         elif key == Keyboard.LEFT:
-            left_speed = -MAX_SPEED / 2
-            right_speed = MAX_SPEED / 2
+            left_speed = -MAX_SPEED * 0.3
+            right_speed = MAX_SPEED * 0.3
         elif key == Keyboard.RIGHT:
-            left_speed = MAX_SPEED / 2
-            right_speed = -MAX_SPEED / 2
-        elif key == Keyboard.SHIFT + Keyboard.UP: #stop simulation
-            break
-        
+            left_speed = MAX_SPEED * 0.3
+            right_speed = -MAX_SPEED * 0.3
+
         set_speed(left_speed, right_speed)
 
         if ENABLE_LIDAR:
             clock_now = publicist.get_clock().now().to_msg()
             run_publicist(clock_now)
-            #ranges = lidar.getRangeImage()
-            #
-            #if DEBUG:
-            #    forward_dist = ranges[num_rays // 2]  # Front (~180°)
-            #    left_dist = ranges[num_rays // 4]  # Left (~90°)
-            #    right_dist = ranges[3 * num_rays // 4]  # Right (~270°)
-            #    print(f"Lidar: Forward={forward_dist:.2f}, Left={left_dist:.2f}, Right={right_dist:.2f}")
-
+           
 except KeyboardInterrupt:
     print("Controller interrupted, stopping the robot.")
 
