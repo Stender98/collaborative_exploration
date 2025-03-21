@@ -11,7 +11,7 @@ import numpy as np
 
 
 TIME_STEP = 128  #Webots simulation time step
-MAX_SPEED = 6.28  #E-puck max speed
+MAX_SPEED = 6  #E-puck max speed is 6.28
 
 #system status
 DEBUG = False
@@ -83,23 +83,16 @@ def publish_scan(clock):
     if ranges is None:
         return
     
-    filtered_ranges = []
-    for r in ranges:
-        if r > lidar.getMinRange() and r < lidar.getMaxRange():
-            filtered_ranges.append(r)
-        else:
-            filtered_ranges.append(float('inf'))  # Mark invalid measurements as infinity
-    
     msg = LaserScan()
     msg.header.stamp = clock
     msg.header.frame_id = "laser"
 
     msg.angle_min = -np.pi #assume full 360° lidar
     msg.angle_max = np.pi
-    msg.angle_increment = np.pi * 2 / len(filtered_ranges)
+    msg.angle_increment = np.pi * 2 / len(ranges)
     msg.range_min = 0.1  #adjust for your LiDAR specs
     msg.range_max = 3.5
-    msg.ranges = filtered_ranges
+    msg.ranges = ranges
 
 
     lidar_publisher.publish(msg)
@@ -151,20 +144,30 @@ def publish_odom(clock):
     transform.transform.translation.y = y
     transform.transform.translation.z = 0.0
     transform.transform.rotation = odom_msg.pose.pose.orientation
+    tf_broadcaster.sendTransform(transform)
 
-    #assuming laser is at (0.1, 0.0, 0.0) relative to base_footprint
+    #base_link
+    base_link_transform = TransformStamped()
+    base_link_transform.header.stamp = odom_msg.header.stamp
+    base_link_transform.header.frame_id = "base_footprint"
+    base_link_transform.child_frame_id = "base_link"
+    base_link_transform.transform.translation.x = 0.0
+    base_link_transform.transform.translation.y = 0.0
+    base_link_transform.transform.translation.z = 0.0
+    base_link_transform.transform.rotation.w = 1.0  # No rotation
+    tf_broadcaster.sendTransform(base_link_transform)
+
+
+    #assuming laser is at 5 cm above relative to base_footprint
     laser_transform = TransformStamped()
     laser_transform.header.stamp = odom_msg.header.stamp
-    laser_transform.header.frame_id = "base_footprint"
+    laser_transform.header.frame_id = "base_link"
     laser_transform.child_frame_id = "laser"
-    laser_transform.transform.translation.x = 0.1
+    laser_transform.transform.translation.x = 0.0
     laser_transform.transform.translation.y = 0.0
-    laser_transform.transform.translation.z = 0.0
+    laser_transform.transform.translation.z = 0.05
     laser_transform.transform.rotation.w = 1.0  #no rotation
     tf_broadcaster.sendTransform(laser_transform)
-
-
-    tf_broadcaster.sendTransform(transform)
 
 def run_publicist(clock):
     publish_scan(clock)
