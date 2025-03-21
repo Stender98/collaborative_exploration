@@ -13,11 +13,11 @@ USER=$1
 # Define paths based on the user
 case $USER in
     "markus")
-        CONTROLLER_PATH="/usr/local/webots/webots-controller ~/Desktop/Master/MasterThesis/controllers/epuck_controller/epuck_controller.py"
+        CONTROLLER_PATH="/usr/local/webots/webots-controller ~/Desktop/Master/MasterThesis/controllers/epuck_controller/epuck_controller_keyboard.py"
         WORLD_PATH="~/Desktop/Master/MasterThesis/worlds/SLAM.wbt"
         ;;
     "stender")
-        CONTROLLER_PATH="/snap/webots/27/usr/share/webots/webots-controller ~/MasterThesis/controllers/epuck_controller/epuck_controller.py"
+        CONTROLLER_PATH="/snap/webots/27/usr/share/webots/webots-controller ~/MasterThesis/controllers/epuck_controller/epuck_controller_keyboard.py"
         WORLD_PATH="~/MasterThesis/worlds/SLAM.wbt"
         ;;
     *)
