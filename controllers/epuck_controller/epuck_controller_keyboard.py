@@ -83,16 +83,23 @@ def publish_scan(clock):
     if ranges is None:
         return
     
+    filtered_ranges = []
+    for r in ranges:
+        if r > lidar.getMinRange() and r < lidar.getMaxRange():
+            filtered_ranges.append(r)
+        else:
+            filtered_ranges.append(float('inf'))  # Mark invalid measurements as infinity
+    
     msg = LaserScan()
     msg.header.stamp = clock
     msg.header.frame_id = "laser"
 
     msg.angle_min = -np.pi #assume full 360° lidar
     msg.angle_max = np.pi
-    msg.angle_increment = np.pi * 2 / len(ranges)
+    msg.angle_increment = np.pi * 2 / len(filtered_ranges)
     msg.range_min = 0.1  #adjust for your LiDAR specs
     msg.range_max = 3.5
-    msg.ranges = ranges
+    msg.ranges = filtered_ranges
 
 
     lidar_publisher.publish(msg)
