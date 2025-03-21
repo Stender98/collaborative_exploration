@@ -10,6 +10,9 @@ webots
 #terminal2
 /snap/webots/27/usr/share/webots/webots-controller ~/MasterThesis/controllers/epuck_controller/epuck_controller.py
 
+Markus:
+/usr/local/webots/webots-controller ~/Desktop/Master/MasterThesis/controllers/epuck_controller/epuck_controller.py
+
 #terminal3
 ros2 launch slam_toolbox online_async_launch.py
 

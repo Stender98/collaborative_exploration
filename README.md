@@ -22,6 +22,8 @@ Open the SLAM world `SLAM.wbt`
 <path_to_webots>/webots-controller <path_to_your_controller>/epuck_controller.py
 ```
 
+Refer to [Webots documentation](https://cyberbotics.com/doc/guide/running-extern-robot-controllers) for help on running an external controller.
+
 ### 3: Launch SLAM Toolbox
 ```sh
 ros2 launch slam_toolbox online_async_launch.py
@@ -31,6 +33,8 @@ ros2 launch slam_toolbox online_async_launch.py
 ```sh
 ros2 run rviz2 rviz2
 ```
+
+Add by topic /map, /pose, or /scan for (Occupancy grid, estimated pose, LiDAR scans)
 
 ## Notes
 - Ensure Webots is properly installed and accessible.
