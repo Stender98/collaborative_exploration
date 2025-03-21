@@ -12,8 +12,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.04916013705903052 0.9865821971469372 0.1556883078367142 0.7580757178936651
-  position -3.1485747246490394 -0.5468277139332679 2.9082429418833504
+  orientation -0.4443372087503084 0.3708616682584258 0.8154913046357775 1.964842379644068
+  position -0.34383049546519895 -2.7943787509023497 4.695627981895738
   follow "e-puck"
   followType "Mounted Shot"
 }
@@ -38,8 +38,122 @@ RectangleArena {
   }
 }
 Wall {
-  translation -0.41 -0.03 0.01
-  size 0.1 1 0.1
+  translation 0.889999 -0.35 0
+  rotation 0 0 1 1.5707996938995747
+  name "wall(10)"
+  size 0.1 0.2 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation 0.47 0.82 0
+  name "wall(9)"
+  size 0.1 0.35 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation 0.219999 0.6 0
+  rotation 0 0 1 1.5707996938995747
+  name "wall(8)"
+  size 0.1 0.6 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation 0.47 -0.86 0
+  name "wall(7)"
+  size 0.1 0.3 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation -0.45 0.75 0
+  name "wall(3)"
+  size 0.1 0.5 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation -0.700001 -0.43 0
+  rotation 0 0 1 1.5707996938995747
+  name "wall(1)"
+  size 0.1 0.6 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation 0.219999 -0.35 0
+  rotation 0 0 1 1.5707996938995747
+  name "wall(5)"
+  size 0.1 0.6 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation -0.13 -0.65 0
+  size 0.1 0.7 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation -0.13 0.3 0
+  name "wall(4)"
+  size 0.1 0.7 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation 0.47 0 0
+  name "wall(6)"
+  size 0.1 0.6 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation -0.45 -0.08 0
+  name "wall(2)"
+  size 0.1 0.6 0.1
   appearance Roughcast {
     colorOverride 0 0 0
     textureTransform TextureTransform {
