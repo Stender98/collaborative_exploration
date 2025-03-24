@@ -6,12 +6,12 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Quaternion, TransformStamped
 import tf_transformations
 import tf2_ros
-from controller import Robot, Keyboard, Lidar
+from controller import Robot, Keyboard
 import numpy as np
 
 
 TIME_STEP = 128  #Webots simulation time step
-MAX_SPEED = 6  #E-puck max speed is 6.28
+MAX_SPEED = 6  #E-puck max velocity is 6.28 rad/s
 
 #system status
 DEBUG = False
@@ -40,6 +40,18 @@ left_motor.setPosition(float('inf'))
 right_motor.setPosition(float('inf'))
 left_motor.setVelocity(0.0)
 right_motor.setVelocity(0.0)
+
+# %% Unused
+# Get the position sensors
+left_sensor = robot.getDevice('left wheel sensor')
+right_sensor = robot.getDevice('right wheel sensor')
+# Enable the position sensors
+left_sensor.enable(TIME_STEP)
+right_sensor.enable(TIME_STEP)
+# Previous encoder values
+prev_left_pos = 0.0
+prev_right_pos = 0.0
+# %%
 
 def set_speed(left, right):
     left_motor.setVelocity(left)
@@ -94,30 +106,29 @@ def publish_scan(clock):
     msg.range_max = 3.5
     msg.ranges = ranges
 
-
     lidar_publisher.publish(msg)
 
 def publish_odom(clock):
     global last_time, x, y, theta #update global variables
     current_time = robot.getTime()
-    dt = current_time - last_time
+    dt = current_time - last_time #time step in seconds
     last_time = current_time
 
     left_speed = left_motor.getVelocity()
-    right_speed = right_motor.getVelocity()
+    right_speed = right_motor.getVelocity() #rad/s
 
-    wheel_radius = 0.0205  #adjust for your robot
-    wheel_distance = 0.053  #distance between wheels
+    wheel_radius = 0.0205 # 20.5 mm
+    wheel_distance = 0.052  # 52 mm aka. axle length
 
-    v_left = left_speed * wheel_radius
+    v_left = left_speed * wheel_radius # units: rad/s * m = m/s
     v_right = right_speed * wheel_radius
 
-    v = (v_right + v_left) / 2.0
-    omega = (v_right - v_left) / wheel_distance
+    v = (v_right + v_left) / 2.0 # units: m/s
+    omega = (v_right - v_left) / wheel_distance # units: m/s / m = rad/s
 
-    x += v * dt * np.cos(theta)
-    y += v * dt * np.sin(theta)
-    theta += omega * dt
+    x += v * dt * np.cos(theta) # units: m/s * s * 1 = m
+    y += v * dt * np.sin(theta) # units: m/s * s * 1 = m
+    theta += omega * dt # units: rad/s * s = rad
 
     #create odometry message
     odom_msg = Odometry()
@@ -156,7 +167,6 @@ def publish_odom(clock):
     base_link_transform.transform.translation.z = 0.0
     base_link_transform.transform.rotation.w = 1.0  # No rotation
     tf_broadcaster.sendTransform(base_link_transform)
-
 
     #assuming laser is at 5 cm above relative to base_footprint
     laser_transform = TransformStamped()
