@@ -64,7 +64,7 @@ tf_broadcaster = tf2_ros.TransformBroadcaster(publicist)
 
 # Subscriber for Nav2 velocity commands
 cmd_vel_subscriber = publicist.create_subscription(
-    Twist, '/cmd_vel', lambda msg: cmd_vel_callback(msg), 10
+    Twist, '/cmd_vel_nav', lambda msg: cmd_vel_callback(msg), 10
 )
 
 # Store latest Nav2 command
@@ -225,6 +225,7 @@ try:
                 left_speed = MAX_SPEED * 0.3
                 right_speed = -MAX_SPEED * 0.3
         else:
+            print('else hehe')
             # Nav2 control
             linear = latest_cmd_vel.linear.x
             angular = latest_cmd_vel.angular.z

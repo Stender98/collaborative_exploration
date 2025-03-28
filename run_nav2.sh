@@ -51,12 +51,13 @@ $TERMINAL --tab --title="Controller" -- bash -c "$CONTROLLER_PATH; exec bash" &
 echo "Launching SLAM Toolbox..."
 $TERMINAL --tab --title="SLAM Toolbox" -- bash -c "source $ROS_SETUP && ros2 launch slam_toolbox online_async_launch.py; exec bash" &
 
-# Step 4: Launch Nav2 Bringup (assuming a config file at ~/nav2_params.yaml)
+# Step 4: Launch Nav2 with navigation_launch.py (no map_server, works with SLAM Toolbox)
+sleep 5  # Give SLAM time to start
 echo "Launching Nav2..."
-$TERMINAL --tab --title="Nav2" -- bash -c "source $ROS_SETUP && ros2 launch nav2_bringup bringup_launch.py use_sim_time:=true params_file:=/home/markus/MasterThesis/config/nav2_params.yaml; exec bash" &
+$TERMINAL --tab --title="Nav2" -- bash -c "source $ROS_SETUP && ros2 launch nav2_bringup navigation_launch.py use_sim_time:=true params_file:=/home/$USER/MasterThesis/config/nav2_params.yaml; exec bash" &
 
-# Step 5: Launch RViz2 with a Nav2 configuration (optional: provide a custom .rviz file)
+# Step 5: Launch RViz2 with a Nav2 configuration
 echo "Launching RViz2..."
-$TERMINAL --tab --title="RViz2" -- bash -c "source $ROS_SETUP && ros2 run rviz2 rviz2 -d ~/nav2_default_view.rviz; exec bash" &
+$TERMINAL --tab --title="RViz2" -- bash -c "source $ROS_SETUP && ros2 run rviz2 rviz2 -d /opt/ros/jazzy/share/nav2_bringup/rviz/nav2_default_view.rviz; exec bash" &
 
 echo "All components launched! Check the terminal tabs for output."

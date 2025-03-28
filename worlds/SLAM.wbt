@@ -13,7 +13,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.4443372087503084 0.3708616682584258 0.8154913046357775 1.964842379644068
-  position -0.34383049546519895 -2.7943787509023497 4.695627981895738
+  position 0.582158648859429 -7.185784819082034 11.755386982113194
   follow "e-puck"
   followType "Mounted Shot"
 }
@@ -32,7 +32,7 @@ E-puck {
   ]
 }
 RectangleArena {
-  floorSize 2 2
+  floorSize 10 10
   floorAppearance Parquetry {
     type "dark strip"
   }
