@@ -13,8 +13,8 @@ USER=$1
 # Define paths based on the user
 case $USER in
     "markus")
-        CONTROLLER_PATH="/usr/local/webots/webots-controller ~/Desktop/Master/MasterThesis/controllers/epuck_controller/epuck_controller_nav2.py"
-        WORLD_PATH="~/Desktop/Master/MasterThesis/worlds/SLAM.wbt"
+        CONTROLLER_PATH="/usr/local/webots/webots-controller ~/MasterThesis/controllers/epuck_controller/epuck_controller_nav2.py"
+        WORLD_PATH="~/MasterThesis/worlds/SLAM.wbt"
         ;;
     "stender")
         CONTROLLER_PATH="/snap/webots/27/usr/share/webots/webots-controller ~/MasterThesis/controllers/epuck_controller/epuck_controller_nav2.py"
@@ -53,7 +53,7 @@ $TERMINAL --tab --title="SLAM Toolbox" -- bash -c "source $ROS_SETUP && ros2 lau
 
 # Step 4: Launch Nav2 Bringup (assuming a config file at ~/nav2_params.yaml)
 echo "Launching Nav2..."
-$TERMINAL --tab --title="Nav2" -- bash -c "source $ROS_SETUP && ros2 launch nav2_bringup bringup_launch.py use_sim_time:=true params_file:=~/nav2_params.yaml; exec bash" &
+$TERMINAL --tab --title="Nav2" -- bash -c "source $ROS_SETUP && ros2 launch nav2_bringup bringup_launch.py use_sim_time:=true params_file:=/home/markus/MasterThesis/config/nav2_params.yaml; exec bash" &
 
 # Step 5: Launch RViz2 with a Nav2 configuration (optional: provide a custom .rviz file)
 echo "Launching RViz2..."
