@@ -42,7 +42,7 @@ def generate_launch_description():
         controller_launch,
         # Nav2 bringup with a 2-second delay
         TimerAction(
-            period=10.0,  # Delay in seconds
+            period=5.0,  # Delay in seconds
             actions=[nav2_bringup]
         )
     ])
