@@ -197,62 +197,63 @@ def run_publicist(clock):
     publish_scan(clock)
     publish_odom(clock)
 
-# Main loop
-print("Controller started. Use arrow keys for manual control, press 'K' to toggle keyboard/Nav2 mode.")
-try:
-    while robot.step(TIME_STEP) != -1:
-        key = keyboard.getKey()
-        left_speed = 0.0
-        right_speed = 0.0
 
-        # Toggle control mode with 'K'
-        if key == ord('K'):
-            use_keyboard = not use_keyboard
-            print(f"Switched to {'keyboard' if use_keyboard else 'Nav2'} control mode.")
+def main():
+    print("Controller started. Use arrow keys for manual control, press 'K' to toggle keyboard/Nav2 mode.")
+    try:
+        while robot.step(TIME_STEP) != -1:
+            key = keyboard.getKey()
+            left_speed = 0.0
+            right_speed = 0.0
 
-        if use_keyboard:
-            # Keyboard control
-            if key == Keyboard.UP:
-                left_speed = MAX_SPEED
-                right_speed = MAX_SPEED
-            elif key == Keyboard.DOWN:
-                left_speed = -MAX_SPEED
-                right_speed = -MAX_SPEED
-            elif key == Keyboard.LEFT:
-                left_speed = -MAX_SPEED * 0.3
-                right_speed = MAX_SPEED * 0.3
-            elif key == Keyboard.RIGHT:
-                left_speed = MAX_SPEED * 0.3
-                right_speed = -MAX_SPEED * 0.3
-        else:
-            print('else hehe')
-            # Nav2 control
-            linear = latest_cmd_vel.linear.x
-            angular = latest_cmd_vel.angular.z
-            wheel_radius = 0.0205
-            wheel_distance = 0.052
+            # Toggle control mode with 'K'
+            if key == ord('K'):
+                global use_keyboard
+                use_keyboard = not use_keyboard
+                print(f"Switched to {'keyboard' if use_keyboard else 'Nav2'} control mode.")
 
-            # Convert to wheel velocities
-            left_speed = (linear - angular * wheel_distance / 2.0) / wheel_radius
-            right_speed = (linear + angular * wheel_distance / 2.0) / wheel_radius
+            if use_keyboard:
+                # Keyboard control
+                if key == Keyboard.UP:
+                    left_speed = MAX_SPEED
+                    right_speed = MAX_SPEED
+                elif key == Keyboard.DOWN:
+                    left_speed = -MAX_SPEED
+                    right_speed = -MAX_SPEED
+                elif key == Keyboard.LEFT:
+                    left_speed = -MAX_SPEED * 0.3
+                    right_speed = MAX_SPEED * 0.3
+                elif key == Keyboard.RIGHT:
+                    left_speed = MAX_SPEED * 0.3
+                    right_speed = -MAX_SPEED * 0.3
+            else:
+                # Nav2 control
+                linear = latest_cmd_vel.linear.x
+                angular = latest_cmd_vel.angular.z
+                wheel_radius = 0.0205
+                wheel_distance = 0.052
 
-            # Clamp speeds to MAX_SPEED
-            left_speed = max(min(left_speed, MAX_SPEED), -MAX_SPEED)
-            right_speed = max(min(right_speed, MAX_SPEED), -MAX_SPEED)
+                left_speed = (linear - angular * wheel_distance / 2.0) / wheel_radius
+                right_speed = (linear + angular * wheel_distance / 2.0) / wheel_radius
 
-        set_speed(left_speed, right_speed)
-        
+                left_speed = max(min(left_speed, MAX_SPEED), -MAX_SPEED)
+                right_speed = max(min(right_speed, MAX_SPEED), -MAX_SPEED)
+
+            set_speed(left_speed, right_speed)
+            
+            if ENABLE_LIDAR:
+                clock_now = publicist.get_clock().now().to_msg()
+                run_publicist(clock_now)
+
+    except KeyboardInterrupt:
+        print("Controller interrupted, stopping the robot.")
+    finally:
+        print("Cleaning up...")
+        set_speed(0, 0)
         if ENABLE_LIDAR:
-            clock_now = publicist.get_clock().now().to_msg()
-            run_publicist(clock_now)
+            lidar.disable()
+        rclpy.shutdown()
+        print("Shutdown complete.")
 
-except KeyboardInterrupt:
-    print("Controller interrupted, stopping the robot.")
-
-finally:
-    print("Cleaning up...")
-    set_speed(0, 0)
-    if ENABLE_LIDAR:
-        lidar.disable()
-    rclpy.shutdown()
-    print("Shutdown complete.")
+if __name__ == '__main__':
+    main()

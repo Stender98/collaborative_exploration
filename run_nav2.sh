@@ -10,15 +10,18 @@ fi
 # Set the username from the argument
 USER=$1
 
+# Get the absolute path of the script's directory (repo root)
+REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Define paths based on the user
 case $USER in
     "markus")
-        CONTROLLER_PATH="/usr/local/webots/webots-controller ~/MasterThesis/controllers/epuck_controller/epuck_controller_nav2.py"
-        WORLD_PATH="~/MasterThesis/worlds/SLAM.wbt"
+        WEBOTS_CMD="/usr/local/webots/webots"
+        WORLD_PATH="$REPO_DIR/worlds/SLAM.wbt"
         ;;
     "stender")
-        CONTROLLER_PATH="/snap/webots/27/usr/share/webots/webots-controller ~/MasterThesis/controllers/epuck_controller/epuck_controller_nav2.py"
-        WORLD_PATH="~/MasterThesis/worlds/SLAM.wbt"
+        WEBOTS_CMD="/snap/webots/27/usr/share/webots/webots"
+        WORLD_PATH="$REPO_DIR/worlds/SLAM.wbt"
         ;;
     *)
         echo "Error: Unknown user '$USER'. Please use 'markus' or 'stender'."
@@ -33,31 +36,35 @@ if [ ! -f "$ROS_SETUP" ]; then
     exit 1
 fi
 
+# Source the ROS 2 workspace (build it if not already built)
+WORKSPACE_SETUP="$REPO_DIR/ros2_ws/install/setup.bash"
+if [ ! -f "$WORKSPACE_SETUP" ]; then
+    echo "Building ROS 2 workspace..."
+    cd "$REPO_DIR/ros2_ws"
+    source "$ROS_SETUP"
+    colcon build
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to build ROS 2 workspace."
+        exit 1
+    fi
+fi
+
 # Terminal command
 TERMINAL="gnome-terminal"
 
 # Step 1: Launch Webots with the specified world
 echo "Launching Webots with world: $WORLD_PATH..."
-$TERMINAL --tab --title="Webots" -- bash -c "webots $WORLD_PATH; exec bash" &
+$TERMINAL --tab --title="Webots" -- bash -c "$WEBOTS_CMD $WORLD_PATH; exec bash" &
 
 # Give Webots a moment to start
 sleep 2
 
-# Step 2: Launch the controller
-echo "Launching controller: $CONTROLLER_PATH..."
-$TERMINAL --tab --title="Controller" -- bash -c "$CONTROLLER_PATH; exec bash" &
+# Step 2: Launch the ROS 2 system (controller, SLAM Toolbox, Nav2)
+echo "Launching ROS 2 system with epuck_nav2_launch.py..."
+$TERMINAL --tab --title="ROS 2 System" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && ros2 launch epuck_nav2_pkg epuck_nav2_launch.py; exec bash" &
 
-# Step 3: Launch SLAM Toolbox
-echo "Launching SLAM Toolbox..."
-$TERMINAL --tab --title="SLAM Toolbox" -- bash -c "source $ROS_SETUP && ros2 launch slam_toolbox online_async_launch.py; exec bash" &
-
-# Step 4: Launch Nav2 with navigation_launch.py (no map_server, works with SLAM Toolbox)
-sleep 5  # Give SLAM time to start
-echo "Launching Nav2..."
-$TERMINAL --tab --title="Nav2" -- bash -c "source $ROS_SETUP && ros2 launch nav2_bringup navigation_launch.py use_sim_time:=true params_file:=/home/$USER/MasterThesis/config/nav2_params.yaml; exec bash" &
-
-# Step 5: Launch RViz2 with a Nav2 configuration
+# Step 3: Launch RViz2 with a Nav2 configuration
 echo "Launching RViz2..."
-$TERMINAL --tab --title="RViz2" -- bash -c "source $ROS_SETUP && ros2 run rviz2 rviz2 -d /opt/ros/jazzy/share/nav2_bringup/rviz/nav2_default_view.rviz; exec bash" &
+$TERMINAL --tab --title="RViz2" -- bash -c "source $ROS_SETUP && ros2 run rviz2 rviz2 -d /opt/ros/jazzy/share/nav2_bringup/rviz/nav2_default_view.rvz; exec bash" &
 
 echo "All components launched! Check the terminal tabs for output."
