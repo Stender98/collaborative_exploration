@@ -211,6 +211,8 @@ class EPuckController(Node):
         executor.add_node(self)
 
         # Initial TF and clock publish
+        sim_time = self.robot.getTime()
+        self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
         clock_now = self.get_clock().now().to_msg()
         for _ in range(20):  # Publish early to ensure Nav2 sees TF and clock
             self.publish_odom_and_tf(clock_now)
@@ -219,12 +221,12 @@ class EPuckController(Node):
 
         try:
             while self.robot.step(TIME_STEP) != -1:
-                # Sync clock with Webots sim time
+                # Sync ROS clock with Webots sim time and get current time
                 sim_time = self.robot.getTime()
-                clock_now = rclpy.time.Time(seconds=sim_time, clock_type=self.get_clock().clock_type).to_msg()
                 self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
+                clock_now = self.get_clock().now().to_msg()  # Use current ROS time after override
 
-                # Publish clock, odom, and scan
+                # Publish clock, odom, and scan with consistent time
                 self.publish_clock(clock_now)
                 if ENABLE_LIDAR:
                     self.publish_scan(clock_now)
