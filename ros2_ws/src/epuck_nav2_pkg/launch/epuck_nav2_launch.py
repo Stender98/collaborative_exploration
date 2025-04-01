@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 import os
@@ -17,23 +17,32 @@ def generate_launch_description():
     # Nav2 launch file
     nav2_launch_file = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')
 
+    # Define the controller launch action
+    controller_launch = ExecuteProcess(
+        cmd=[webots_controller, controller_path],
+        output='screen',
+        name='epuck_controller'
+    )
+
+    # Define the Nav2 bringup action
+    nav2_bringup = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(nav2_launch_file),
+        launch_arguments={
+            'slam': 'True',              # Enable SLAM mode
+            'params_file': config_path,  # Nav2 params
+            'slam_params_file': slam_params,  # SLAM Toolbox params
+            'map': '',                   # No static map
+            'use_sim_time': 'True',      # Use simulation time
+            'autostart': 'True',         # Auto-start lifecycle nodes
+        }.items()
+    )
+
     return LaunchDescription([
-        # e-puck controller with Webots
-        ExecuteProcess(
-            cmd=[webots_controller, controller_path],
-            output='screen',
-            name='epuck_controller'
-        ),
-        # Nav2 bringup with SLAM Toolbox
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(nav2_launch_file),
-            launch_arguments={
-                'slam': 'True',              # Enable SLAM mode
-                'params_file': config_path,  # Nav2 params
-                'slam_params_file': slam_params,  # SLAM Toolbox params
-                'map': '',                   # No static map
-                'use_sim_time': 'True',      # Use simulation time
-                'autostart': 'True',         # Auto-start lifecycle nodes
-            }.items()
+        # e-puck controller with Webots (starts immediately)
+        controller_launch,
+        # Nav2 bringup with a 2-second delay
+        TimerAction(
+            period=5.0,  # Delay in seconds
+            actions=[nav2_bringup]
         )
     ])
