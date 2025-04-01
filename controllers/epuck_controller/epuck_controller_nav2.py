@@ -9,7 +9,7 @@ import tf2_ros
 from controller import Robot, Keyboard
 import numpy as np
 
-TIME_STEP = 128  # Webots simulation time step
+TIME_STEP = 50  # Webots simulation time step
 MAX_SPEED = 6  # E-puck max velocity is 6.28 rad/s
 
 # System status

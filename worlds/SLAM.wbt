@@ -10,6 +10,7 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Roughcast.proto"
 
 WorldInfo {
+  basicTimeStep 50
 }
 Viewpoint {
   orientation -0.4443372087503084 0.3708616682584258 0.8154913046357775 1.964842379644068

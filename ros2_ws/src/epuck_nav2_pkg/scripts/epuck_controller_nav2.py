@@ -9,7 +9,7 @@ import tf2_ros
 from controller import Robot, Keyboard
 import numpy as np
 
-TIME_STEP = 128  # Webots simulation time step
+TIME_STEP = 50  # 50 ms = 20 Hz, matches controller_frequency
 MAX_SPEED = 6  # E-puck max velocity is 6.28 rad/s
 
 # System status
@@ -56,8 +56,15 @@ def set_speed(left, right):
     left_motor.setVelocity(left)
     right_motor.setVelocity(right)
 
-# ROS2 node
-publicist = rclpy.create_node('epuck_controller')
+# ROS2 node with proper clock handling
+class MinimalPublicist(Node):
+    def __init__(self):
+        super().__init__('epuck_controller')
+        # Use simulation time from Webots
+        self.get_logger().info("Using simulation time")
+        self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=0))
+
+publicist = MinimalPublicist()
 odom_publisher = publicist.create_publisher(Odometry, '/odom', 10)
 lidar_publisher = publicist.create_publisher(LaserScan, '/scan', 10)
 tf_broadcaster = tf2_ros.TransformBroadcaster(publicist)
@@ -164,7 +171,7 @@ def publish_odom(clock):
     odom_publisher.publish(odom_msg)
 
     transform = TransformStamped()
-    transform.header.stamp = odom_msg.header.stamp
+    transform.header.stamp = clock
     transform.header.frame_id = "odom"
     transform.child_frame_id = "base_footprint"
     transform.transform.translation.x = x if not np.isnan(x) else 0.0
@@ -174,7 +181,7 @@ def publish_odom(clock):
     tf_broadcaster.sendTransform(transform)
 
     base_link_transform = TransformStamped()
-    base_link_transform.header.stamp = odom_msg.header.stamp
+    base_link_transform.header.stamp = clock
     base_link_transform.header.frame_id = "base_footprint"
     base_link_transform.child_frame_id = "base_link"
     base_link_transform.transform.translation.x = 0.0
@@ -184,7 +191,7 @@ def publish_odom(clock):
     tf_broadcaster.sendTransform(base_link_transform)
 
     laser_transform = TransformStamped()
-    laser_transform.header.stamp = odom_msg.header.stamp
+    laser_transform.header.stamp = clock
     laser_transform.header.frame_id = "base_link"
     laser_transform.child_frame_id = "laser"
     laser_transform.transform.translation.x = 0.0
@@ -197,11 +204,19 @@ def run_publicist(clock):
     publish_scan(clock)
     publish_odom(clock)
 
-
 def main():
+    # Spin ROS 2 node in a separate executor
+    executor = rclpy.executors.MultiThreadedExecutor()
+    executor.add_node(publicist)
+
     print("Controller started. Use arrow keys for manual control, press 'K' to toggle keyboard/Nav2 mode.")
     try:
         while robot.step(TIME_STEP) != -1:
+            # Sync ROS clock with Webots simulation time
+            sim_time = robot.getTime()
+            publicist.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
+            clock_now = publicist.get_clock().now().to_msg()
+
             key = keyboard.getKey()
             left_speed = 0.0
             right_speed = 0.0
@@ -242,8 +257,10 @@ def main():
             set_speed(left_speed, right_speed)
             
             if ENABLE_LIDAR:
-                clock_now = publicist.get_clock().now().to_msg()
                 run_publicist(clock_now)
+
+            # Spin ROS 2 node once per step
+            executor.spin_once(timeout_sec=TIME_STEP / 1000.0)  # Convert ms to s
 
     except KeyboardInterrupt:
         print("Controller interrupted, stopping the robot.")
@@ -252,6 +269,7 @@ def main():
         set_speed(0, 0)
         if ENABLE_LIDAR:
             lidar.disable()
+        executor.shutdown()
         rclpy.shutdown()
         print("Shutdown complete.")
 
