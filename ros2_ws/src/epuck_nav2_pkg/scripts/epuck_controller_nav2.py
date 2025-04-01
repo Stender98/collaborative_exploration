@@ -1,16 +1,21 @@
-"""epuck_controller."""
+#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Quaternion, TransformStamped, Twist
+from rosgraph_msgs.msg import Clock  # For clock publishing
 import tf_transformations
 import tf2_ros
 from controller import Robot, Keyboard
 import numpy as np
 
+# Constants
 TIME_STEP = 50  # 50 ms = 20 Hz, matches controller_frequency
 MAX_SPEED = 6  # E-puck max velocity is 6.28 rad/s
+WHEEL_RADIUS = 0.0205
+WHEEL_DISTANCE = 0.052
 
 # System status
 DEBUG = False
@@ -18,260 +23,261 @@ ENABLE_LIDAR = True
 ENABLE_CAMERA = False
 ENABLE_DIST = False
 
-print("Controller initiated, starting the robot.")
-rclpy.init()
-
-# Robot and IO devices
-robot = Robot()
-keyboard = Keyboard()
-keyboard.enable(TIME_STEP)
-
-# Robot state
-x = 0.0
-y = 0.0
-theta = 0.0
-last_time = robot.getTime()
-first_step = True  # Flag for initial step
-
-# Motors
-left_motor = robot.getDevice("left wheel motor")
-right_motor = robot.getDevice("right wheel motor")
-left_motor.setPosition(float('inf'))
-right_motor.setPosition(float('inf'))
-left_motor.setVelocity(0.0)
-right_motor.setVelocity(0.0)
-
-# Position sensors
-left_sensor = robot.getDevice('left wheel sensor')
-right_sensor = robot.getDevice('right wheel sensor')
-left_sensor.enable(TIME_STEP)
-right_sensor.enable(TIME_STEP)
-prev_left_pos = 0.0
-prev_right_pos = 0.0
-
-# Control mode flag (True = keyboard, False = Nav2)
-use_keyboard = True
-
-def set_speed(left, right):
-    left_motor.setVelocity(left)
-    right_motor.setVelocity(right)
-
-# ROS2 node with proper clock handling
-class MinimalPublicist(Node):
+class EPuckController(Node):
     def __init__(self):
         super().__init__('epuck_controller')
-        # Use simulation time from Webots
         self.get_logger().info("Using simulation time")
-        self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=0))
+        
+        # Webots setup
+        self.robot = Robot()
+        self.keyboard = Keyboard()
+        self.keyboard.enable(TIME_STEP)
 
-publicist = MinimalPublicist()
-odom_publisher = publicist.create_publisher(Odometry, '/odom', 10)
-lidar_publisher = publicist.create_publisher(LaserScan, '/scan', 10)
-tf_broadcaster = tf2_ros.TransformBroadcaster(publicist)
+        # Robot state
+        self.x = 0.0
+        self.y = 0.0
+        self.theta = 0.0
+        self.last_time = self.robot.getTime()
+        self.first_step = True
 
-# Subscriber for Nav2 velocity commands
-cmd_vel_subscriber = publicist.create_subscription(
-    Twist, '/cmd_vel', lambda msg: cmd_vel_callback(msg), 10
-)
+        # Motors
+        self.left_motor = self.robot.getDevice("left wheel motor")
+        self.right_motor = self.robot.getDevice("right wheel motor")
+        self.left_motor.setPosition(float('inf'))
+        self.right_motor.setPosition(float('inf'))
+        self.left_motor.setVelocity(0.0)
+        self.right_motor.setVelocity(0.0)
 
-# Store latest Nav2 command
-latest_cmd_vel = Twist()
+        # Position sensors
+        self.left_sensor = self.robot.getDevice('left wheel sensor')
+        self.right_sensor = self.robot.getDevice('right wheel sensor')
+        self.left_sensor.enable(TIME_STEP)
+        self.right_sensor.enable(TIME_STEP)
+        self.prev_left_pos = 0.0
+        self.prev_right_pos = 0.0
 
-def cmd_vel_callback(msg):
-    global latest_cmd_vel
-    latest_cmd_vel = msg
+        # Lidar setup
+        if ENABLE_LIDAR:
+            self.lidar = self.robot.getDevice("LDS-01")
+            self.lidar.enable(TIME_STEP)
+            self.num_rays = self.lidar.getHorizontalResolution()
+            self.fov = self.lidar.getFov()
+            self.angle_step = self.fov / self.num_rays
+            self.get_logger().info(
+                f"Lidar initialized: {self.num_rays} rays, FOV: {self.fov:.2f} rad, Angle step: {self.angle_step:.4f} rad"
+            )
 
-# Lidar setup
-if ENABLE_LIDAR:
-    lidar = robot.getDevice("LDS-01")
-    lidar.enable(TIME_STEP)
-    num_rays = lidar.getHorizontalResolution()
-    fov = lidar.getFov()
-    angle_step = fov / num_rays
-    print(f"Lidar initialized: {num_rays} rays, FOV: {fov:.2f} rad, Angle step: {angle_step:.4f} rad")
+        # ROS 2 publishers and broadcasters
+        self.odom_publisher = self.create_publisher(Odometry, '/odom', 10)
+        self.scan_publisher = self.create_publisher(LaserScan, '/scan', 10)
+        self.clock_publisher = self.create_publisher(Clock, '/clock', 10)  # Clock publisher
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
-def publish_scan(clock):
-    ranges = list(reversed(lidar.getRangeImage()))
-    if ranges is None:
-        return
-    
-    msg = LaserScan()
-    msg.header.stamp = clock
-    msg.header.frame_id = "laser"
-    msg.angle_min = -np.pi
-    msg.angle_max = np.pi
-    msg.angle_increment = np.pi * 2 / len(ranges)
-    msg.range_min = 0.1
-    msg.range_max = 3.5
-    msg.ranges = ranges
-    lidar_publisher.publish(msg)
+        # Subscriber for Nav2 velocity commands
+        self.latest_cmd_vel = Twist()
+        self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
 
-def publish_odom(clock):
-    global last_time, x, y, theta, prev_left_pos, prev_right_pos, first_step
-    current_time = robot.getTime()
-    dt = current_time - last_time
-    last_time = current_time
+        # Control mode (True = keyboard, False = Nav2)
+        self.use_keyboard = True
 
-    current_left_pos = left_sensor.getValue()
-    current_right_pos = right_sensor.getValue()
+    def cmd_vel_callback(self, msg):
+        """Store the latest Nav2 velocity command."""
+        self.latest_cmd_vel = msg
 
-    if first_step:
-        prev_left_pos = current_left_pos
-        prev_right_pos = current_right_pos
-        first_step = False
-        return
+    def set_speed(self, left, right):
+        """Set motor velocities."""
+        self.left_motor.setVelocity(left)
+        self.right_motor.setVelocity(right)
 
-    delta_left = current_left_pos - prev_left_pos
-    delta_right = current_right_pos - prev_right_pos
-    prev_left_pos = current_left_pos
-    prev_right_pos = current_right_pos
+    def publish_clock(self, clock):
+        """Publish simulation time to /clock."""
+        clock_msg = Clock()
+        clock_msg.clock = clock
+        self.clock_publisher.publish(clock_msg)
 
-    wheel_radius = 0.0205
-    wheel_distance = 0.052
+    def publish_scan(self, clock):
+        """Publish LiDAR scan data."""
+        if not ENABLE_LIDAR or not hasattr(self, 'lidar'):
+            return
+        ranges = list(reversed(self.lidar.getRangeImage()))
+        if not ranges:
+            return
 
-    delta_s_left = delta_left * wheel_radius
-    delta_s_right = delta_right * wheel_radius
+        msg = LaserScan()
+        msg.header.stamp = clock
+        msg.header.frame_id = "laser"
+        msg.angle_min = -np.pi
+        msg.angle_max = np.pi
+        msg.angle_increment = np.pi * 2 / len(ranges)
+        msg.range_min = 0.1
+        msg.range_max = 3.5
+        msg.ranges = ranges
+        self.scan_publisher.publish(msg)
 
-    delta_s = (delta_s_right + delta_s_left) / 2.0
-    delta_theta = (delta_s_right - delta_s_left) / wheel_distance
+    def publish_odom_and_tf(self, clock):
+        """Publish odometry and TF based on wheel encoder data."""
+        current_time = self.robot.getTime()
+        dt = current_time - self.last_time
+        self.last_time = current_time
 
-    if abs(delta_theta) < 1e-6:
-        dx = delta_s * np.cos(theta)
-        dy = delta_s * np.sin(theta)
-    else:
-        radius = delta_s / delta_theta
-        dx = radius * (np.sin(theta + delta_theta) - np.sin(theta))
-        dy = radius * (np.cos(theta) - np.cos(theta + delta_theta))
+        current_left_pos = self.left_sensor.getValue()
+        current_right_pos = self.right_sensor.getValue()
 
-    x += dx if not np.isnan(dx) else 0.0
-    y += dy if not np.isnan(dy) else 0.0
-    theta += delta_theta if not np.isnan(delta_theta) else 0.0
+        if self.first_step:
+            self.prev_left_pos = current_left_pos
+            self.prev_right_pos = current_right_pos
+            self.first_step = False
+            return
 
-    odom_msg = Odometry()
-    odom_msg.header.stamp = clock
-    odom_msg.header.frame_id = "odom"
-    odom_msg.child_frame_id = "base_footprint"
-    
-    odom_msg.pose.pose.position.x = x if not np.isnan(x) else 0.0
-    odom_msg.pose.pose.position.y = y if not np.isnan(y) else 0.0
-    odom_msg.pose.pose.position.z = 0.0
-    
-    q = tf_transformations.quaternion_from_euler(0, 0, theta if not np.isnan(theta) else 0.0)
-    odom_msg.pose.pose.orientation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
+        delta_left = current_left_pos - self.prev_left_pos
+        delta_right = current_right_pos - self.prev_right_pos
+        self.prev_left_pos = current_left_pos
+        self.prev_right_pos = current_right_pos
 
-    odom_msg.pose.covariance = [
-        0.01, 0.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.01, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.01
-    ]
+        delta_s_left = delta_left * WHEEL_RADIUS
+        delta_s_right = delta_right * WHEEL_RADIUS
 
-    odom_publisher.publish(odom_msg)
+        delta_s = (delta_s_right + delta_s_left) / 2.0
+        delta_theta = (delta_s_right - delta_s_left) / WHEEL_DISTANCE
 
-    transform = TransformStamped()
-    transform.header.stamp = clock
-    transform.header.frame_id = "odom"
-    transform.child_frame_id = "base_footprint"
-    transform.transform.translation.x = x if not np.isnan(x) else 0.0
-    transform.transform.translation.y = y if not np.isnan(y) else 0.0
-    transform.transform.translation.z = 0.0
-    transform.transform.rotation = odom_msg.pose.pose.orientation
-    tf_broadcaster.sendTransform(transform)
+        if abs(delta_theta) < 1e-6:
+            dx = delta_s * np.cos(self.theta)
+            dy = delta_s * np.sin(self.theta)
+        else:
+            radius = delta_s / delta_theta
+            dx = radius * (np.sin(self.theta + delta_theta) - np.sin(self.theta))
+            dy = radius * (np.cos(self.theta) - np.cos(self.theta + delta_theta))
 
-    base_link_transform = TransformStamped()
-    base_link_transform.header.stamp = clock
-    base_link_transform.header.frame_id = "base_footprint"
-    base_link_transform.child_frame_id = "base_link"
-    base_link_transform.transform.translation.x = 0.0
-    base_link_transform.transform.translation.y = 0.0
-    base_link_transform.transform.translation.z = 0.0
-    base_link_transform.transform.rotation.w = 1.0
-    tf_broadcaster.sendTransform(base_link_transform)
+        self.x += dx if not np.isnan(dx) else 0.0
+        self.y += dy if not np.isnan(dy) else 0.0
+        self.theta += delta_theta if not np.isnan(delta_theta) else 0.0
 
-    laser_transform = TransformStamped()
-    laser_transform.header.stamp = clock
-    laser_transform.header.frame_id = "base_link"
-    laser_transform.child_frame_id = "laser"
-    laser_transform.transform.translation.x = 0.0
-    laser_transform.transform.translation.y = 0.0
-    laser_transform.transform.translation.z = 0.05
-    laser_transform.transform.rotation.w = 1.0
-    tf_broadcaster.sendTransform(laser_transform)
+        # Odometry message
+        odom_msg = Odometry()
+        odom_msg.header.stamp = clock
+        odom_msg.header.frame_id = "odom"
+        odom_msg.child_frame_id = "base_footprint"
+        odom_msg.pose.pose.position.x = self.x if not np.isnan(self.x) else 0.0
+        odom_msg.pose.pose.position.y = self.y if not np.isnan(self.y) else 0.0
+        odom_msg.pose.pose.position.z = 0.0
+        q = tf_transformations.quaternion_from_euler(0, 0, self.theta if not np.isnan(self.theta) else 0.0)
+        odom_msg.pose.pose.orientation = Quaternion(x=q[0], y=q[1], z=q[2], w=q[3])
+        odom_msg.pose.covariance = [
+            0.01, 0.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.01, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.01
+        ]
+        self.odom_publisher.publish(odom_msg)
 
-def run_publicist(clock):
-    publish_scan(clock)
-    publish_odom(clock)
+        # TF: odom -> base_footprint
+        transform = TransformStamped()
+        transform.header.stamp = clock
+        transform.header.frame_id = "odom"
+        transform.child_frame_id = "base_footprint"
+        transform.transform.translation.x = self.x if not np.isnan(self.x) else 0.0
+        transform.transform.translation.y = self.y if not np.isnan(self.y) else 0.0
+        transform.transform.translation.z = 0.0
+        transform.transform.rotation = odom_msg.pose.pose.orientation
+        self.tf_broadcaster.sendTransform(transform)
+
+        # TF: base_footprint -> base_link
+        base_link_tf = TransformStamped()
+        base_link_tf.header.stamp = clock
+        base_link_tf.header.frame_id = "base_footprint"
+        base_link_tf.child_frame_id = "base_link"
+        base_link_tf.transform.rotation.w = 1.0
+        self.tf_broadcaster.sendTransform(base_link_tf)
+
+        # TF: base_link -> laser
+        laser_tf = TransformStamped()
+        laser_tf.header.stamp = clock
+        laser_tf.header.frame_id = "base_link"
+        laser_tf.child_frame_id = "laser"
+        laser_tf.transform.translation.z = 0.05
+        laser_tf.transform.rotation.w = 1.0
+        self.tf_broadcaster.sendTransform(laser_tf)
+
+    def run(self):
+        """Main control loop."""
+        self.get_logger().info("Controller started. Use arrow keys for manual control, press 'K' to toggle keyboard/Nav2 mode.")
+        executor = MultiThreadedExecutor()
+        executor.add_node(self)
+
+        # Initial TF and clock publish
+        sim_time = 0.0
+        self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
+        clock_now = self.get_clock().now().to_msg()
+        for _ in range(20):  # Publish early to ensure Nav2 sees TF and clock
+            self.publish_odom_and_tf(clock_now)
+            self.publish_clock(clock_now)
+            executor.spin_once(timeout_sec=0.01)
+
+        try:
+            while self.robot.step(TIME_STEP) != -1:
+                sim_time = self.robot.getTime()
+                self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
+                clock_now = self.get_clock().now().to_msg()
+
+                # Publish clock, odom, and scan
+                self.publish_clock(clock_now)
+                if ENABLE_LIDAR:
+                    self.publish_scan(clock_now)
+                self.publish_odom_and_tf(clock_now)
+
+                # Handle keyboard input
+                key = self.keyboard.getKey()
+                left_speed = 0.0
+                right_speed = 0.0
+
+                if key == ord('K'):
+                    self.use_keyboard = not self.use_keyboard
+                    self.get_logger().info(f"Switched to {'keyboard' if self.use_keyboard else 'Nav2'} control mode.")
+
+                if self.use_keyboard:
+                    if key == Keyboard.UP:
+                        left_speed = MAX_SPEED
+                        right_speed = MAX_SPEED
+                    elif key == Keyboard.DOWN:
+                        left_speed = -MAX_SPEED
+                        right_speed = -MAX_SPEED
+                    elif key == Keyboard.LEFT:
+                        left_speed = -MAX_SPEED * 0.3
+                        right_speed = MAX_SPEED * 0.3
+                    elif key == Keyboard.RIGHT:
+                        left_speed = MAX_SPEED * 0.3
+                        right_speed = -MAX_SPEED * 0.3
+                else:
+                    linear = self.latest_cmd_vel.linear.x
+                    angular = self.latest_cmd_vel.angular.z
+                    left_speed = (linear - angular * WHEEL_DISTANCE / 2.0) / WHEEL_RADIUS
+                    right_speed = (linear + angular * WHEEL_DISTANCE / 2.0) / WHEEL_RADIUS
+                    left_speed = max(min(left_speed, MAX_SPEED), -MAX_SPEED)
+                    right_speed = max(min(right_speed, MAX_SPEED), -MAX_SPEED)
+
+                self.set_speed(left_speed, right_speed)
+                executor.spin_once(timeout_sec=TIME_STEP / 1000.0)
+
+        except KeyboardInterrupt:
+            self.get_logger().info("Controller interrupted, stopping the robot.")
+        finally:
+            self.cleanup()
+
+    def cleanup(self):
+        """Shutdown and cleanup."""
+        self.get_logger().info("Cleaning up...")
+        self.set_speed(0, 0)
+        if ENABLE_LIDAR and hasattr(self, 'lidar'):
+            self.lidar.disable()
+        rclpy.shutdown()
+        self.get_logger().info("Shutdown complete.")
 
 def main():
-    # Spin ROS 2 node in a separate executor
-    executor = rclpy.executors.MultiThreadedExecutor()
-    executor.add_node(publicist)
-
-    print("Controller started. Use arrow keys for manual control, press 'K' to toggle keyboard/Nav2 mode.")
-    try:
-        while robot.step(TIME_STEP) != -1:
-            # Sync ROS clock with Webots simulation time
-            sim_time = robot.getTime()
-            publicist.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
-            clock_now = publicist.get_clock().now().to_msg()
-
-            key = keyboard.getKey()
-            left_speed = 0.0
-            right_speed = 0.0
-
-            # Toggle control mode with 'K'
-            if key == ord('K'):
-                global use_keyboard
-                use_keyboard = not use_keyboard
-                print(f"Switched to {'keyboard' if use_keyboard else 'Nav2'} control mode.")
-
-            if use_keyboard:
-                # Keyboard control
-                if key == Keyboard.UP:
-                    left_speed = MAX_SPEED
-                    right_speed = MAX_SPEED
-                elif key == Keyboard.DOWN:
-                    left_speed = -MAX_SPEED
-                    right_speed = -MAX_SPEED
-                elif key == Keyboard.LEFT:
-                    left_speed = -MAX_SPEED * 0.3
-                    right_speed = MAX_SPEED * 0.3
-                elif key == Keyboard.RIGHT:
-                    left_speed = MAX_SPEED * 0.3
-                    right_speed = -MAX_SPEED * 0.3
-            else:
-                # Nav2 control
-                linear = latest_cmd_vel.linear.x
-                angular = latest_cmd_vel.angular.z
-                wheel_radius = 0.0205
-                wheel_distance = 0.052
-
-                left_speed = (linear - angular * wheel_distance / 2.0) / wheel_radius
-                right_speed = (linear + angular * wheel_distance / 2.0) / wheel_radius
-
-                left_speed = max(min(left_speed, MAX_SPEED), -MAX_SPEED)
-                right_speed = max(min(right_speed, MAX_SPEED), -MAX_SPEED)
-
-            set_speed(left_speed, right_speed)
-            
-            if ENABLE_LIDAR:
-                run_publicist(clock_now)
-
-            # Spin ROS 2 node once per step
-            executor.spin_once(timeout_sec=TIME_STEP / 1000.0)  # Convert ms to s
-
-    except KeyboardInterrupt:
-        print("Controller interrupted, stopping the robot.")
-    finally:
-        print("Cleaning up...")
-        set_speed(0, 0)
-        if ENABLE_LIDAR:
-            lidar.disable()
-        executor.shutdown()
-        rclpy.shutdown()
-        print("Shutdown complete.")
+    rclpy.init()
+    controller = EPuckController()
+    controller.run()
 
 if __name__ == '__main__':
     main()
