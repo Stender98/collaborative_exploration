@@ -181,3 +181,4 @@ physics/*/*.exe
 physics/*/*.dylib
 
 install/
+log/

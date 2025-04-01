@@ -32,7 +32,7 @@ E-puck {
   ]
 }
 RectangleArena {
-  floorSize 10 10
+  floorSize 2 2
   floorAppearance Parquetry {
     type "dark strip"
   }
