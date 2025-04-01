@@ -5,7 +5,7 @@ amcl:
         alpha3: 0.2
         alpha4: 0.2
         alpha5: 0.2
-        base_frame_id: 'base_footprint'
+        base_frame_id: 'base_footprint' # Matches controller
         beam_skip_distance: 0.5
         beam_skip_error_threshold: 0.9
         beam_skip_threshold: 0.3
@@ -13,8 +13,8 @@ amcl:
         global_frame_id: 'map'
         lambda_short: 0.1
         laser_likelihood_max_dist: 2.0
-        laser_max_range: 100.0
-        laser_min_range: -1.0
+        laser_max_range: 3.5 # Adjusted to LDS-01 max range
+        laser_min_range: 0.0 # Reasonable for LDS-01
         laser_model_type: 'likelihood_field'
         max_beams: 60
         max_particles: 2000
@@ -41,7 +41,7 @@ amcl:
 bt_navigator:
     ros__parameters:
         global_frame: map
-        robot_base_frame: base_link
+        robot_base_frame: base_footprint # Changed to match controller
         odom_topic: /odom
         bt_loop_duration: 10
         default_server_timeout: 20
@@ -84,11 +84,11 @@ controller_server:
             required_movement_radius: 0.5
             movement_time_allowance: 10.0
         # Goal checker parameters
-        #precise_goal_checker:
-        #  plugin: "nav2_controller::SimpleGoalChecker"
-        #  xy_goal_tolerance: 0.25
-        #  yaw_goal_tolerance: 0.25
-        #  stateful: True
+        precise_goal_checker:
+            plugin: 'nav2_controller::SimpleGoalChecker'
+            xy_goal_tolerance: 0.25
+            yaw_goal_tolerance: 0.25
+            stateful: True
         general_goal_checker:
             stateful: True
             plugin: 'nav2_controller::SimpleGoalChecker'
@@ -99,17 +99,17 @@ controller_server:
             time_steps: 56
             model_dt: 0.05
             batch_size: 2000
-            ax_max: 3.0
-            ax_min: -3.0
-            ay_max: 3.0
-            az_max: 3.5
+            ax_max: 2.0 # Adjusted for e-puck (smaller robot)
+            ax_min: -2.0
+            ay_max: 0.0 # Differential drive, no lateral accel
+            az_max: 12.0 # Adjusted for quick rotation
             vx_std: 0.2
             vy_std: 0.2
             wz_std: 0.4
-            vx_max: 0.5
-            vx_min: -0.35
-            vy_max: 0.5
-            wz_max: 1.9
+            vx_max: 0.25 # E-puck max forward speed
+            vx_min: -0.25 # E-puck max backward speed
+            vy_max: 0.0 # No lateral motion
+            wz_max: 6.28 # E-puck max rotation speed
             iteration_count: 1
             prune_distance: 1.7
             transform_tolerance: 0.5
@@ -122,7 +122,7 @@ controller_server:
                 trajectory_step: 5
                 time_step: 3
             AckermannConstraints:
-                min_turning_r: 0.2
+                min_turning_r: 0.052 # E-puck axle length
             critics: ['ConstraintCritic', 'CostCritic', 'GoalCritic', 'GoalAngleCritic', 'PathAlignCritic', 'PathFollowCritic', 'PathAngleCritic', 'PreferForwardCritic']
             ConstraintCritic:
                 enabled: true
@@ -186,17 +186,17 @@ local_costmap:
             update_frequency: 5.0
             publish_frequency: 2.0
             global_frame: odom
-            robot_base_frame: base_link
+            robot_base_frame: base_footprint # Changed to match controller
             rolling_window: true
             width: 3
             height: 3
             resolution: 0.05
-            robot_radius: 0.22
+            robot_radius: 0.0355 # E-puck radius (0.071m / 2)
             plugins: ['voxel_layer', 'inflation_layer']
             inflation_layer:
                 plugin: 'nav2_costmap_2d::InflationLayer'
                 cost_scaling_factor: 3.0
-                inflation_radius: 0.70
+                inflation_radius: 0.2 # Smaller for e-puck
             voxel_layer:
                 plugin: 'nav2_costmap_2d::VoxelLayer'
                 enabled: True
@@ -204,18 +204,18 @@ local_costmap:
                 origin_z: 0.0
                 z_resolution: 0.05
                 z_voxels: 16
-                max_obstacle_height: 2.0
+                max_obstacle_height: 0.05 # E-puck height
                 mark_threshold: 0
                 observation_sources: scan
                 scan:
                     topic: /scan
-                    max_obstacle_height: 2.0
+                    max_obstacle_height: 0.05 # E-puck height
                     clearing: True
                     marking: True
                     data_type: 'LaserScan'
-                    raytrace_max_range: 3.0
+                    raytrace_max_range: 3.5 # LDS-01 max range
                     raytrace_min_range: 0.0
-                    obstacle_max_range: 2.5
+                    obstacle_max_range: 3.5 # LDS-01 max range
                     obstacle_min_range: 0.0
             static_layer:
                 plugin: 'nav2_costmap_2d::StaticLayer'
@@ -228,8 +228,8 @@ global_costmap:
             update_frequency: 1.0
             publish_frequency: 1.0
             global_frame: map
-            robot_base_frame: base_link
-            robot_radius: 0.22
+            robot_base_frame: base_footprint # Changed to match controller
+            robot_radius: 0.0355 # E-puck radius
             resolution: 0.05
             track_unknown_space: true
             plugins: ['static_layer', 'obstacle_layer', 'inflation_layer']
@@ -239,13 +239,13 @@ global_costmap:
                 observation_sources: scan
                 scan:
                     topic: /scan
-                    max_obstacle_height: 2.0
+                    max_obstacle_height: 0.05 # E-puck height
                     clearing: True
                     marking: True
                     data_type: 'LaserScan'
-                    raytrace_max_range: 3.0
+                    raytrace_max_range: 3.5 # LDS-01 max range
                     raytrace_min_range: 0.0
-                    obstacle_max_range: 2.5
+                    obstacle_max_range: 3.5 # LDS-01 max range
                     obstacle_min_range: 0.0
             static_layer:
                 plugin: 'nav2_costmap_2d::StaticLayer'
@@ -253,7 +253,7 @@ global_costmap:
             inflation_layer:
                 plugin: 'nav2_costmap_2d::InflationLayer'
                 cost_scaling_factor: 3.0
-                inflation_radius: 0.7
+                inflation_radius: 0.2 # Smaller for e-puck
             always_send_full_costmap: True
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.
@@ -310,12 +310,12 @@ behavior_server:
             plugin: 'nav2_behaviors::AssistedTeleop'
         local_frame: odom
         global_frame: map
-        robot_base_frame: base_link
+        robot_base_frame: base_footprint # Changed to match controller
         transform_tolerance: 0.5
         simulate_ahead_time: 2.0
-        max_rotational_vel: 1.0
+        max_rotational_vel: 6.28 # E-puck max rotation speed
         min_rotational_vel: 0.4
-        rotational_acc_lim: 3.2
+        rotational_acc_lim: 12.0 # Adjusted for e-puck
 
 waypoint_follower:
     ros__parameters:
@@ -333,10 +333,10 @@ velocity_smoother:
         smoothing_frequency: 20.0
         scale_velocities: False
         feedback: 'OPEN_LOOP'
-        max_velocity: [0.5, 0.0, 2.0]
-        min_velocity: [-0.5, 0.0, -2.0]
-        max_accel: [2.5, 0.0, 3.2]
-        max_decel: [-2.5, 0.0, -3.2]
+        max_velocity: [0.25, 0.0, 6.28] # E-puck: max linear, 0 lateral, max angular
+        min_velocity: [-0.25, 0.0, -6.28] # E-puck: min linear, 0 lateral, min angular
+        max_accel: [2.0, 0.0, 12.0] # Adjusted for e-puck
+        max_decel: [-2.0, 0.0, -12.0] # Adjusted for e-puck
         odom_topic: 'odom'
         odom_duration: 0.1
         deadband_velocity: [0.0, 0.0, 0.0]
@@ -344,7 +344,7 @@ velocity_smoother:
 
 collision_monitor:
     ros__parameters:
-        base_frame_id: 'base_footprint'
+        base_frame_id: 'base_footprint' # Already correct
         odom_frame_id: 'odom'
         cmd_vel_in_topic: 'cmd_vel_smoothed'
         cmd_vel_out_topic: 'cmd_vel'
@@ -353,8 +353,6 @@ collision_monitor:
         source_timeout: 1.0
         base_shift_correction: True
         stop_pub_timeout: 2.0
-        # Polygons represent zone around the robot for "stop", "slowdown" and "limit" action types,
-        # and robot footprint for "approach" action type.
         polygons: ['FootprintApproach']
         FootprintApproach:
             type: 'polygon'
@@ -369,8 +367,8 @@ collision_monitor:
         scan:
             type: 'scan'
             topic: 'scan'
-            min_height: 0.15
-            max_height: 2.0
+            min_height: 0.02 # LDS-01 at 2cm
+            max_height: 0.05 # E-puck height
             enabled: True
 
 docking_server:
@@ -382,7 +380,7 @@ docking_server:
         undock_linear_tolerance: 0.05
         undock_angular_tolerance: 0.5
         max_retries: 3
-        base_frame: 'base_link'
+        base_frame: 'base_footprint' # Changed to match controller
         fixed_frame: 'odom'
         dock_backwards: false
         dock_prestaging_tolerance: 0.5
@@ -406,7 +404,6 @@ docking_server:
             filter_coef: 0.1
 
         # Dock instances
-        # The following example illustrates configuring dock instances.
         # docks: ['home_dock']  # Input your docks here
         # home_dock:
         #   type: 'simple_charging_dock'
@@ -428,8 +425,16 @@ docking_server:
 
 loopback_simulator:
     ros__parameters:
-        base_frame_id: 'base_footprint'
+        base_frame_id: 'base_footprint' # Already correct
         odom_frame_id: 'odom'
         map_frame_id: 'map'
-        scan_frame_id: 'base_scan' # tb4_loopback_simulator.launch.py remaps to 'rplidar_link'
+        scan_frame_id: 'laser' # Changed to match controller’s LIDAR frame
         update_duration: 0.02
+
+slam_toolbox:
+    ros__parameters:
+        use_sim_time: True
+        odom_frame: 'odom'
+        base_frame: 'base_footprint' # Changed to match controller
+        map_frame: 'map'
+        max_laser_range: 3.5 # LDS-01 max range

@@ -179,3 +179,5 @@ physics/*/*.so
 physics/*/*.dll
 physics/*/*.exe
 physics/*/*.dylib
+
+install/
