@@ -12,7 +12,6 @@ from controller import Robot, Keyboard
 import numpy as np
 
 # Constants
-TIME_STEP = 50  # 50 ms = 20 Hz, matches controller_frequency
 MAX_SPEED = 6  # E-puck max velocity is 6.28 rad/s
 WHEEL_RADIUS = 0.0205
 WHEEL_DISTANCE = 0.052
@@ -31,6 +30,8 @@ class EPuckController(Node):
 
         # Webots setup
         self.robot = Robot()
+        global TIME_STEP
+        TIME_STEP = int(self.robot.getBasicTimeStep())
         self.keyboard = Keyboard()
         self.keyboard.enable(TIME_STEP)
 
