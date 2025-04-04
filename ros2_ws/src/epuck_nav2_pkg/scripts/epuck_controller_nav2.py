@@ -32,6 +32,7 @@ class EPuckController(Node):
         self.robot = Robot()
         global TIME_STEP
         TIME_STEP = int(self.robot.getBasicTimeStep())
+        print("Time step is: ", TIME_STEP)
         self.keyboard = Keyboard()
         self.keyboard.enable(TIME_STEP)
 
