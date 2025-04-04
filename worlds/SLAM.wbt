@@ -10,11 +10,11 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Roughcast.proto"
 
 WorldInfo {
-  basicTimeStep 50
+  basicTimeStep 100
 }
 Viewpoint {
-  orientation -0.4443372087503084 0.3708616682584258 0.8154913046357775 1.964842379644068
-  position 0.582158648859429 -7.185784819082034 11.755386982113194
+  orientation -0.4445082502878502 0.37085043755020025 0.8154031937605216 1.9648265173700772
+  position 0.5790641316524171 -7.183628144856831 11.756627028801205
   follow "e-puck"
   followType "Mounted Shot"
 }
@@ -23,6 +23,18 @@ TexturedBackground {
 TexturedBackgroundLight {
 }
 E-puck {
+  hidden position_0_0 -1.1387351875153066e-07
+  hidden position_0_1 -1.089878362857017e-07
+  hidden linearVelocity_0 -1.3370631889937131e-09 8.948257912879645e-10 -1.9269542110206943e-08
+  hidden angularVelocity_0 -2.2887706510576666e-08 -3.4276137937973014e-08 1.7971884379043674e-10
+  hidden rotation_1 0 -1 0 1.1542389828584842e-07
+  hidden linearVelocity_1 -5.881491614154056e-10 4.1499454088728685e-10 -1.9471865300713098e-08
+  hidden angularVelocity_1 -2.2881382245846662e-08 -3.427224663987166e-08 1.7478732547458973e-10
+  hidden rotation_2 0 -0.9999999999999999 0 1.0745380149674385e-07
+  hidden linearVelocity_2 -6.02535662251045e-10 3.760237618773173e-10 -1.8304883234177005e-08
+  hidden angularVelocity_2 -2.2903121774345217e-08 -3.427281985503883e-08 1.8404036811125088e-10
+  translation -2.2265486820699683e-08 -6.480328096727418e-09 -0.0002308308907576842
+  rotation -0.5713792655618705 -0.8206851980236338 0.0012412215300189398 0.00032103374224490906
   controller "<extern>"
   controllerArgs [
     ""
@@ -133,17 +145,6 @@ Wall {
   translation -0.13 0.3 0
   name "wall(4)"
   size 0.1 0.7 0.1
-  appearance Roughcast {
-    colorOverride 0 0 0
-    textureTransform TextureTransform {
-      scale 2.4 1
-    }
-  }
-}
-Wall {
-  translation 0.47 0 0
-  name "wall(6)"
-  size 0.1 0.6 0.1
   appearance Roughcast {
     colorOverride 0 0 0
     textureTransform TextureTransform {
