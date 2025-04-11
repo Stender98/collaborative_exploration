@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import time
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
@@ -259,6 +260,7 @@ class EPuckController(Node):
 
         try:
             while self.robot.step(TIME_STEP) != -1:
+                start_time = time.time()
                 # Sync ROS clock with Webots sim time and get current time
                 sim_time = self.robot.getTime()
                 self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
@@ -313,6 +315,13 @@ class EPuckController(Node):
 
                 self.set_speed(left_speed, right_speed)
                 executor.spin_once(timeout_sec=TIME_STEP / 1000.0)
+
+                elapsed = time.time() - start_time
+                sleep_time = 0.050 - elapsed
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                total_time = time.time() - start_time
+                self.get_logger().info(f"Total loop time: {total_time:.3f} s")
 
         except KeyboardInterrupt:
             self.get_logger().info("Controller interrupted, stopping the robot.")
