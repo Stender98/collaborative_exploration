@@ -2,12 +2,14 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.action import ActionClient
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Quaternion, TransformStamped, Twist
+from geometry_msgs.msg import Quaternion, TransformStamped, Twist, PointStamped
 from rosgraph_msgs.msg import Clock
 import tf_transformations
 import tf2_ros
+from nav2_msgs.action import NavigateToPose
 from controller import Robot, Keyboard
 import numpy as np
 
@@ -81,6 +83,12 @@ class EPuckController(Node):
         self.last_cmd_vel_time = self.get_clock().now()
         self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
 
+        # Subscriber for /goal topic (NEW)
+        self.create_subscription(PointStamped, '/goal', self.goal_callback, 10)
+
+        # Action client for Nav2 (NEW)
+        self.nav2_client = ActionClient(self, NavigateToPose, '/navigate_to_pose')
+
         # Control mode state
         self.use_keyboard = False  # Start with Nav2 by default
         self.last_mode = None  # Track mode changes for logging
@@ -89,6 +97,34 @@ class EPuckController(Node):
         """Store the latest Nav2 velocity command and update timestamp."""
         self.latest_cmd_vel = msg
         self.last_cmd_vel_time = self.get_clock().now()
+
+    def goal_callback(self, msg):
+        """Convert PointStamped to NavigateToPose goal and send to Nav2."""
+        if not self.nav2_client.wait_for_server(timeout_sec=2.0):
+            self.get_logger().error("Nav2 action server not available")
+            return
+
+        goal_msg = NavigateToPose.Goal()
+        goal_msg.pose.header = msg.header
+        goal_msg.pose.header.stamp = self.get_clock().now().to_msg()  # Update timestamp
+        goal_msg.pose.pose.position.x = msg.point.x
+        goal_msg.pose.pose.position.y = msg.point.y
+        goal_msg.pose.pose.position.z = 0.0
+        goal_msg.pose.pose.orientation.w = 1.0  # Default orientation (yaw = 0)
+
+        self.get_logger().info(f"Sending Nav2 goal: x={msg.point.x}, y={msg.point.y}")
+        self.nav2_client.send_goal_async(goal_msg)
+
+    def set_speed(self, left, right):
+        """Set motor velocities."""
+        self.left_motor.setVelocity(left)
+        self.right_motor.setVelocity(right)
+
+    def publish_clock(self, clock):
+        """Publish simulation time to /clock."""
+        clock_msg = Clock()
+        clock_msg.clock = clock
+        self.clock_publisher.publish(clock_msg)
 
     def set_speed(self, left, right):
         """Set motor velocities."""

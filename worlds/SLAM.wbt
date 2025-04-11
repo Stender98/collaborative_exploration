@@ -10,10 +10,11 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/appearances/protos/Roughcast.proto"
 
 WorldInfo {
+  basicTimeStep 50
 }
 Viewpoint {
-  orientation -0.4445570150910094 0.3708471965415806 0.8153780823339699 1.9648218205751848
-  position 1.7757475017931748 -2.698011027186159 5.503769408989205
+  orientation -0.44439143989126223 0.3708580656804311 0.815463391741861 1.9648376185977356
+  position 1.7771520728429564 -2.6989872766007688 5.5030104875696635
   follow "e-puck"
   followType "Mounted Shot"
 }
@@ -22,12 +23,12 @@ TexturedBackground {
 TexturedBackgroundLight {
 }
 E-puck {
-  hidden position_0_0 -1.1387351875153066e-07
-  hidden position_0_1 -1.089878362857017e-07
-  hidden rotation_1 0 -1 0 1.1542389828584842e-07
-  hidden rotation_2 0 -0.9999999999999999 0 1.0745380149674385e-07
-  translation -1.8459016066488167e-08 -9.15106844999198e-09 -0.00028133180227630367
-  rotation -0.5710650381860869 -0.8209042392249789 0.0009757991504345356 0.0004125670361832346
+  hidden position_0_0 -1.6781499226165247e-07
+  hidden position_0_1 -1.6137583333890572e-07
+  hidden rotation_1 0 -1 0 1.6858739404357617e-07
+  hidden rotation_2 0 -1 0 1.6049041769309358e-07
+  translation -3.122663266440402e-08 -2.886743130777955e-10 -0.00010820528389635792
+  rotation -0.5721202629388918 -0.82016065370998 0.0038609378072367107 0.00010176148412992107
   controller "<extern>"
   controllerArgs [
     ""
@@ -42,6 +43,17 @@ RectangleArena {
   floorAppearance Parquetry {
     type "dark strip"
   }
+}
+Solid {
+  translation 0.5 -0.5 0
+  children [
+    Shape {
+      geometry Cone {
+        bottomRadius 0.05
+        height 0.1
+      }
+    }
+  ]
 }
 Wall {
   translation 0.889999 -0.35 0
