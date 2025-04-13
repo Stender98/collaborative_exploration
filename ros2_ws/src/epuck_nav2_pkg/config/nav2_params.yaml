@@ -18,8 +18,8 @@ amcl:
         laser_min_range: 0.0 # Reasonable for LDS-01
         laser_model_type: 'likelihood_field'
         max_beams: 60
-        max_particles: 2000
-        min_particles: 500
+        max_particles: 1000
+        min_particles: 100
         odom_frame_id: 'odom'
         pf_err: 0.05
         pf_z: 0.99
@@ -70,7 +70,7 @@ bt_navigator:
 controller_server:
     ros__parameters:
         use_sim_time: True
-        controller_frequency: 20.0
+        controller_frequency: 10.0
         costmap_update_timeout: 0.30
         min_x_velocity_threshold: 0.001
         min_y_velocity_threshold: 0.5
@@ -89,18 +89,18 @@ controller_server:
         # Goal checker parameters
         precise_goal_checker:
             plugin: 'nav2_controller::SimpleGoalChecker'
-            xy_goal_tolerance: 0.25
+            xy_goal_tolerance: 0.05
             yaw_goal_tolerance: 0.25
             stateful: True
         general_goal_checker:
             stateful: True
             plugin: 'nav2_controller::SimpleGoalChecker'
-            xy_goal_tolerance: 0.25
+            xy_goal_tolerance: 0.05
             yaw_goal_tolerance: 0.25
         FollowPath:
             plugin: 'nav2_mppi_controller::MPPIController'
             time_steps: 56
-            model_dt: 0.05
+            model_dt: 0.1
             batch_size: 2000
             ax_max: 2.0 # Adjusted for e-puck (smaller robot)
             ax_min: -2.0
@@ -293,7 +293,7 @@ smoother_server:
         smoother_plugins: ['simple_smoother']
         simple_smoother:
             plugin: 'nav2_smoother::SimpleSmoother'
-            tolerance: 1.0e-10
+            tolerance: 1.0e-4
             max_its: 1000
             do_refinement: True
 
