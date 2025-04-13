@@ -18,7 +18,7 @@ amcl:
         laser_min_range: 0.0 # Reasonable for LDS-01
         laser_model_type: 'likelihood_field'
         max_beams: 60
-        max_particles: 1000
+        max_particles: 500
         min_particles: 100
         odom_frame_id: 'odom'
         pf_err: 0.05
@@ -84,19 +84,19 @@ controller_server:
         # Progress checker parameters
         progress_checker:
             plugin: 'nav2_controller::SimpleProgressChecker'
-            required_movement_radius: 0.5
+            required_movement_radius: 0.05
             movement_time_allowance: 10.0
         # Goal checker parameters
         precise_goal_checker:
             plugin: 'nav2_controller::SimpleGoalChecker'
             xy_goal_tolerance: 0.05
-            yaw_goal_tolerance: 0.25
+            yaw_goal_tolerance: 0.1
             stateful: True
         general_goal_checker:
             stateful: True
             plugin: 'nav2_controller::SimpleGoalChecker'
             xy_goal_tolerance: 0.05
-            yaw_goal_tolerance: 0.25
+            yaw_goal_tolerance: 0.1
         FollowPath:
             plugin: 'nav2_mppi_controller::MPPIController'
             time_steps: 56
@@ -200,8 +200,8 @@ local_costmap:
             plugins: ['voxel_layer', 'inflation_layer']
             inflation_layer:
                 plugin: 'nav2_costmap_2d::InflationLayer'
-                cost_scaling_factor: 20.0 # Increase to make cost drop off faster (less bloating)
-                inflation_radius: 0.15 # Set to 0.1 m (min distance) + 0.0355 m (radius) + a small margin
+                cost_scaling_factor: 5.0 # Increase to make cost drop off faster (less bloating)
+                inflation_radius: 0.05 # Set to 0.1 m (min distance) + 0.0355 m (radius) + a small margin
             voxel_layer:
                 plugin: 'nav2_costmap_2d::VoxelLayer'
                 enabled: True
@@ -449,7 +449,7 @@ slam_toolbox:
         # General
         mode: 'mapping' # "mapping" for SLAM, "localization" for AMCL
         use_sim_time: True
-        transform_publish_period: 0.02 # 50 Hz
+        transform_publish_period: 0.1 # 10 Hz
         map_frame: 'map'
         odom_frame: 'odom'
         base_frame: 'base_footprint' # Matches controller
