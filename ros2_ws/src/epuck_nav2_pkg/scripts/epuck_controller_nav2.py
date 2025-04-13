@@ -316,12 +316,12 @@ class EPuckController(Node):
                 self.set_speed(left_speed, right_speed)
                 executor.spin_once(timeout_sec=TIME_STEP / 1000.0)
 
-                elapsed = time.time() - start_time
+                '''elapsed = time.time() - start_time
                 sleep_time = 0.050 - elapsed
                 if sleep_time > 0:
                     time.sleep(sleep_time)
                 total_time = time.time() - start_time
-                self.get_logger().info(f"Total loop time: {total_time:.3f} s")
+                self.get_logger().info(f"Total loop time: {total_time:.3f} s")'''
 
         except KeyboardInterrupt:
             self.get_logger().info("Controller interrupted, stopping the robot.")
