@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import time
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
@@ -13,6 +12,7 @@ import tf2_ros
 from nav2_msgs.action import NavigateToPose
 from controller import Robot, Keyboard
 import numpy as np
+from frontier import FrontierExploration
 
 # Constants
 MAX_SPEED = 6  # E-puck max velocity is 6.28 rad/s
@@ -248,6 +248,8 @@ class EPuckController(Node):
         self.get_logger().info("Controller started. Arrow keys override Nav2; Nav2 resumes when keys are idle.")
         executor = MultiThreadedExecutor()
         executor.add_node(self)
+        frontier_node = FrontierExploration()
+        executor.add_node(frontier_node)
 
         # Initial TF and clock publish
         sim_time = self.robot.getTime()
@@ -260,7 +262,6 @@ class EPuckController(Node):
 
         try:
             while self.robot.step(TIME_STEP) != -1:
-                start_time = time.time()
                 # Sync ROS clock with Webots sim time and get current time
                 sim_time = self.robot.getTime()
                 self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
@@ -315,13 +316,6 @@ class EPuckController(Node):
 
                 self.set_speed(left_speed, right_speed)
                 executor.spin_once(timeout_sec=TIME_STEP / 1000.0)
-
-                '''elapsed = time.time() - start_time
-                sleep_time = 0.050 - elapsed
-                if sleep_time > 0:
-                    time.sleep(sleep_time)
-                total_time = time.time() - start_time
-                self.get_logger().info(f"Total loop time: {total_time:.3f} s")'''
 
         except KeyboardInterrupt:
             self.get_logger().info("Controller interrupted, stopping the robot.")

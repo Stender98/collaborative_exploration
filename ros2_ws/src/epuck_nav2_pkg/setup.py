@@ -15,6 +15,7 @@ setup(
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
         # Install the script to share/epuck_nav2_pkg/scripts/
         (os.path.join('share', package_name, 'scripts'), ['scripts/epuck_controller_nav2.py']),
+        (os.path.join('share', package_name, 'scripts'), ['scripts/frontier.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
