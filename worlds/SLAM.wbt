@@ -24,14 +24,8 @@ TexturedBackgroundLight {
 E-puck {
   hidden position_0_0 -1.0808391987745942e-07
   hidden position_0_1 -1.049828555593718e-07
-  hidden linearVelocity_0 -6.526083748125627e-18 6.712768972463587e-16 -2.0701627697990298e-15
-  hidden angularVelocity_0 1.9312348674506788e-14 -1.3976538313319503e-16 1.5640488608014961e-16
   hidden rotation_1 0 -1 0 1.0745380149674385e-07
-  hidden linearVelocity_1 -6.002556881064078e-18 7.699852610248429e-15 3.9523509516289e-15
-  hidden angularVelocity_1 -1.8266229258428205e-13 -1.9653553347158993e-16 3.395947516394492e-16
   hidden rotation_2 0 -1 0 1.032382731180714e-07
-  hidden linearVelocity_2 1.178544556982447e-18 7.220757509956948e-16 1.1102286667016544e-15
-  hidden angularVelocity_2 -2.3433673539806347e-12 -1.3568048250480612e-16 -2.605285015654147e-16
   translation -3.070625127581626e-08 -6.815080299139159e-10 -0.00010820528389571954
   rotation -0.5721202794394512 -0.8201606737860764 0.003854222216419625 0.00010176148112007513
   controller "<extern>"
@@ -122,17 +116,6 @@ Wall {
   rotation 0 0 1 1.5707996938995747
   name "wall(1)"
   size 0.1 0.6 0.1
-  appearance Roughcast {
-    colorOverride 0 0 0
-    textureTransform TextureTransform {
-      scale 2.4 1
-    }
-  }
-}
-Wall {
-  translation -0.13 0.3 0
-  name "wall(4)"
-  size 0.1 0.7 0.1
   appearance Roughcast {
     colorOverride 0 0 0
     textureTransform TextureTransform {
