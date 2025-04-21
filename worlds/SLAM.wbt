@@ -12,8 +12,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.4443914398469515 0.37085806590131865 0.8154633916655526 1.964837618040567
-  position 1.7771520715210825 -2.698987278208502 5.5030104875687496
+  orientation -0.4533326456786392 0.4155380437362008 0.7885541494215199 1.9078030243064086
+  position 1.7026879147589817 -3.0828029344892873 4.884395104376799
   follow "e-puck"
   followType "Mounted Shot"
 }
@@ -22,10 +22,6 @@ TexturedBackground {
 TexturedBackgroundLight {
 }
 E-puck {
-  hidden position_0_0 -1.0808391987745942e-07
-  hidden position_0_1 -1.049828555593718e-07
-  hidden rotation_1 0 -1 0 1.0745380149674385e-07
-  hidden rotation_2 0 -1 0 1.032382731180714e-07
   translation -3.070625127581626e-08 -6.815080299139159e-10 -0.00010820528389571954
   rotation -0.5721202794394512 -0.8201606737860764 0.003854222216419625 0.00010176148112007513
   controller "<extern>"
@@ -44,7 +40,7 @@ RectangleArena {
   }
 }
 Solid {
-  translation 0.7 -0.7 0
+  translation 0.7 -0.7 0.4
   children [
     Shape {
       geometry Cone {
@@ -78,6 +74,17 @@ Wall {
   }
 }
 Wall {
+  translation 0.47 0.36 0
+  name "wall(4)"
+  size 0.1 0.35 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
   translation 0.219999 0.6 0
   rotation 0 0 1 1.5707996938995747
   name "wall(8)"
@@ -92,6 +99,17 @@ Wall {
 Wall {
   translation 0.47 -0.86 0
   name "wall(7)"
+  size 0.1 0.3 0.1
+  appearance Roughcast {
+    colorOverride 0 0 0
+    textureTransform TextureTransform {
+      scale 2.4 1
+    }
+  }
+}
+Wall {
+  translation -0.46 -0.86 0
+  name "wall(2)"
   size 0.1 0.3 0.1
   appearance Roughcast {
     colorOverride 0 0 0

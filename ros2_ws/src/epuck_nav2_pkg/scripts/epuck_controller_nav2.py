@@ -12,7 +12,7 @@ import tf2_ros
 from nav2_msgs.action import NavigateToPose
 from controller import Robot, Keyboard
 import numpy as np
-from frontier import FrontierExploration
+#from frontier import FrontierExploration
 
 # Constants
 MAX_SPEED = 6  # E-puck max velocity is 6.28 rad/s
@@ -248,8 +248,8 @@ class EPuckController(Node):
         self.get_logger().info("Controller started. Arrow keys override Nav2; Nav2 resumes when keys are idle.")
         executor = MultiThreadedExecutor()
         executor.add_node(self)
-        frontier_node = FrontierExploration()
-        executor.add_node(frontier_node)
+        #frontier_node = FrontierExploration()
+        #executor.add_node(frontier_node)
 
         # Initial TF and clock publish
         sim_time = self.robot.getTime()

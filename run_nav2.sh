@@ -64,7 +64,7 @@ echo "Launching ROS 2 system with epuck_nav2_launch.py..."
 $TERMINAL --tab --title="ROS 2 System" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && ros2 launch epuck_nav2_pkg epuck_nav2_launch.py; exec bash" &
 
 # Step 3: Launch RViz2 with a Nav2 configuration
-echo "Launching RViz2..."
-$TERMINAL --tab --title="RViz2" -- bash -c "source $ROS_SETUP && ros2 run rviz2 rviz2 -d /opt/ros/jazzy/share/nav2_bringup/rviz/nav2_default_view.rvz; exec bash" &
+#echo "Launching RViz2..."
+#$TERMINAL --tab --title="RViz2" -- bash -c "source $ROS_SETUP && ros2 run rviz2 rviz2 -d /opt/ros/jazzy/share/nav2_bringup/rviz/nav2_default_view.rvz; exec bash" &
 
 echo "All components launched! Check the terminal tabs for output."

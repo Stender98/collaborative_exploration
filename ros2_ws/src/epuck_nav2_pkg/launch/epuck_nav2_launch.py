@@ -10,6 +10,9 @@ def generate_launch_description():
     controller_path = os.path.join(repo_dir, 'scripts/epuck_controller_nav2.py')
     config_path = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config', 'nav2_params.yaml')
 
+    # RViz configuration file path (optional, adjust as needed)
+    rviz_config_path = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config', 'nav2_rviz_config.rviz')
+
     # Webots controller path
     webots_controller = '/usr/local/webots/webots-controller' if os.getenv('USER') == 'markus' else '/snap/webots/27/usr/share/webots/webots-controller'
 
@@ -35,6 +38,14 @@ def generate_launch_description():
         }.items()
     )
 
+    # Define the RViz launch action
+    rviz_launch = ExecuteProcess(
+        cmd=['rviz2', '-d', rviz_config_path],  # Use custom config file
+        # cmd=['rviz2'],  # Uncomment to launch RViz without a config file
+        output='screen',
+        name='rviz2'
+    )
+
     return LaunchDescription([
         # e-puck controller with Webots (starts immediately)
         controller_launch,
@@ -42,5 +53,9 @@ def generate_launch_description():
         TimerAction(
             period=5.0,  # Delay in seconds
             actions=[nav2_bringup]
+        ),
+        TimerAction(
+            period=6.0,  # Delay in seconds
+            actions=[rviz_launch]
         )
     ])
