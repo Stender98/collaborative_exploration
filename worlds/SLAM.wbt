@@ -12,8 +12,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.4533326456786392 0.4155380437362008 0.7885541494215199 1.9078030243064086
-  position 1.7026879147589817 -3.0828029344892873 4.884395104376799
+  orientation -0.3570735297263306 0.3226607178212921 0.8765777521382959 1.8245242425719388
+  position 1.8920512666315805 -4.24138534098617 3.970844004556967
   follow "e-puck"
   followType "Mounted Shot"
 }
@@ -40,7 +40,7 @@ RectangleArena {
   }
 }
 Solid {
-  translation 0.7 -0.7 0.4
+  translation -0.8 0.7 0
   children [
     Shape {
       geometry Cone {
