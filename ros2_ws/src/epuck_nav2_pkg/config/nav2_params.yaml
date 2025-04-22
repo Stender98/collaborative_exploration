@@ -149,7 +149,7 @@ controller_server:
             CostCritic:
                 enabled: true
                 cost_power: 1
-                cost_weight: 3.81
+                cost_weight: 10.0
                 critical_cost: 300.0
                 consider_footprint: true
                 collision_cost: 1000000.0
@@ -158,7 +158,7 @@ controller_server:
             PathAlignCritic:
                 enabled: true
                 cost_power: 1
-                cost_weight: 14.0
+                cost_weight: 25.0
                 max_path_occupancy_ratio: 0.05
                 trajectory_point_step: 4
                 threshold_to_consider: 0.5
@@ -167,7 +167,7 @@ controller_server:
             PathFollowCritic:
                 enabled: true
                 cost_power: 1
-                cost_weight: 5.0
+                cost_weight: 25.0
                 offset_from_furthest: 5
                 threshold_to_consider: 1.4
             PathAngleCritic:
@@ -200,8 +200,8 @@ local_costmap:
             plugins: ['voxel_layer', 'inflation_layer']
             inflation_layer:
                 plugin: 'nav2_costmap_2d::InflationLayer'
-                cost_scaling_factor: 10.0 # Increase to make cost drop off faster (less bloating)
-                inflation_radius: 0.07 # Set to 0.1 m (min distance) + 0.0355 m (radius) + a small margin
+                cost_scaling_factor: 15.0 # Increase to make cost drop off faster (less bloating)
+                inflation_radius: 0.06 # Set to 0.1 m (min distance) + 0.0355 m (radius) + a small margin
             voxel_layer:
                 plugin: 'nav2_costmap_2d::VoxelLayer'
                 enabled: True
@@ -256,8 +256,8 @@ global_costmap:
                 map_subscribe_transient_local: True
             inflation_layer:
                 plugin: 'nav2_costmap_2d::InflationLayer'
-                cost_scaling_factor: 10.0 # Increase to make cost drop off faster (less bloating)
-                inflation_radius: 0.07 # Set to 0.1 m (min distance) + 0.0355 m (radius) + a small margin
+                cost_scaling_factor: 15.0 # Increase to make cost drop off faster (less bloating)
+                inflation_radius: 0.06 # Set to 0.1 m (min distance) + 0.0355 m (radius) + a small margin
             always_send_full_costmap: True
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.
