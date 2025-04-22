@@ -7,6 +7,7 @@ import cv2
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 from rclpy.time import Time
+from action_msgs.msg import GoalStatus
 
 class FrontierExploration(Node):
     def __init__(self):
@@ -15,8 +16,10 @@ class FrontierExploration(Node):
         self.sending_goal = False
         self.last_goal_coords = None  # Track last sent goal to avoid repetition
         self.last_goal_time = None  # Track when the last goal was completed/aborted
+        self.current_goal_handle = None  # Track current goal handle for cancellation
         self.cooldown_duration = 2.0  # Seconds to wait before selecting new frontier
         self.min_map_coverage = 0.1  # Minimum fraction of known map cells (0 to 1)
+        self.frontier_check_interval = 1.0  # Seconds between frontier checks
 
         # Subscriber to the map topic
         self.subscription = self.create_subscription(
@@ -34,6 +37,12 @@ class FrontierExploration(Node):
         )
 
         self.map_data = None
+
+        # Timer to periodically check if current goal is still a frontier
+        self.check_frontier_timer = self.create_timer(
+            self.frontier_check_interval,
+            self.check_current_goal
+        )
 
     def map_callback(self, msg):
         self.get_logger().info('Received map update')
@@ -126,6 +135,52 @@ class FrontierExploration(Node):
         _, _, world_x, world_y = valid_coords[0]
         return (world_x, world_y)
 
+    def is_goal_still_frontier(self, goal_coords):
+        """Check if the goal coordinates are still a frontier."""
+        if self.map_data is None or goal_coords is None:
+            return False
+
+        width = self.map_data.info.width
+        height = self.map_data.info.height
+        resolution = self.map_data.info.resolution
+        origin = self.map_data.info.origin
+
+        # Convert world coordinates to map indices
+        x_idx = int((goal_coords[0] - origin.position.x) / resolution)
+        y_idx = int((goal_coords[1] - origin.position.y) / resolution)
+
+        # Check if indices are within map bounds
+        if not (0 <= x_idx < width and 0 <= y_idx < height):
+            self.get_logger().info('Goal coordinates out of map bounds')
+            return False
+
+        map_array = np.array(self.map_data.data, dtype=np.int8).reshape((height, width))
+
+        # Check a small region around the goal
+        region = map_array[max(0, y_idx-1):min(height, y_idx+2), max(0, x_idx-1):min(width, x_idx+2)]
+        is_unknown = np.any(region == -1)  # Check for unknown cells
+        is_free_nearby = np.any(map_array[max(0, y_idx-2):min(height, y_idx+3),
+                                        max(0, x_idx-2):min(width, x_idx+3)] == 0)  # Check for free space nearby
+
+        return is_unknown and is_free_nearby
+
+    def check_current_goal(self):
+        """Periodically check if the current goal is still a frontier."""
+        if not self.sending_goal or self.current_goal_handle is None or self.last_goal_coords is None:
+            return
+
+        if not self.is_goal_still_frontier(self.last_goal_coords):
+            self.get_logger().info('Current goal is no longer a frontier. Canceling goal.')
+            self.current_goal_handle.cancel_goal_async()
+            self.sending_goal = False
+            self.last_goal_time = self.get_clock().now()
+            self.current_goal_handle = None
+            # Try to find a new frontier immediately
+            if self.map_data is not None and self.is_map_ready():
+                frontier = self.find_frontier()
+                if frontier is not None:
+                    self.send_goal(frontier)
+
     def send_goal(self, goal_coords):
         if not self.nav2_client.wait_for_server(timeout_sec=2.0):
             self.get_logger().warn('Nav2 server not available')
@@ -151,9 +206,11 @@ class FrontierExploration(Node):
             self.get_logger().warn('Goal rejected by Nav2')
             self.sending_goal = False
             self.last_goal_time = self.get_clock().now()
+            self.current_goal_handle = None
             return
 
         self.get_logger().info('Goal accepted, waiting for result...')
+        self.current_goal_handle = goal_handle  # Store the goal handle
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self.goal_result_callback)
 
@@ -161,11 +218,16 @@ class FrontierExploration(Node):
         status = future.result().status
         self.sending_goal = False
         self.last_goal_time = self.get_clock().now()
+        self.current_goal_handle = None  # Clear the goal handle
 
-        if status == 4:  # Aborted
-            self.get_logger().warn('Goal aborted. Trying next frontier')
+        if status == GoalStatus.STATUS_SUCCEEDED:
+            self.get_logger().info('Goal reached successfully')
+        elif status == GoalStatus.STATUS_CANCELED:
+            self.get_logger().info('Goal canceled')
+        elif status == GoalStatus.STATUS_ABORTED:
+            self.get_logger().warn('Goal aborted')
         else:
-            self.get_logger().info('Goal completed')
+            self.get_logger().warn(f'Goal failed with status {status}')
 
         # Try next frontier if map data is available and ready
         if self.map_data is not None and self.is_map_ready():
