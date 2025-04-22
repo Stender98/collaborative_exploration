@@ -13,7 +13,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.3570735297263306 0.3226607178212921 0.8765777521382959 1.8245242425719388
-  position 1.8920512666315805 -4.24138534098617 3.970844004556967
+  position 1.2991459397306824 -4.321352285576536 3.967901245556774
   follow "e-puck"
   followType "Mounted Shot"
 }
@@ -40,7 +40,7 @@ RectangleArena {
   }
 }
 Solid {
-  translation -0.8 0.7 0
+  translation 0.8 0.7 0
   children [
     Shape {
       geometry Cone {
