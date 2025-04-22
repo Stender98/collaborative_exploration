@@ -6,7 +6,6 @@ from geometry_msgs.msg import PoseStamped
 import cv2
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
-from rclpy.time import Time
 from action_msgs.msg import GoalStatus
 
 class FrontierExploration(Node):
@@ -20,6 +19,7 @@ class FrontierExploration(Node):
         self.cooldown_duration = 2.0  # Seconds to wait before selecting new frontier
         self.min_map_coverage = 0.1  # Minimum fraction of known map cells (0 to 1)
         self.frontier_check_interval = 1.0  # Seconds between frontier checks
+        self.min_free_neighbors = 3  # Minimum number of free space neighbors for a frontier
 
         # Subscriber to the map topic
         self.subscription = self.create_subscription(
@@ -84,7 +84,7 @@ class FrontierExploration(Node):
         map_array = np.array(self.map_data.data, dtype=np.int8).reshape((height, width))
 
         # Frontier detection: unknown (-1) adjacent to known free space (0)
-        kernel = np.array([[1,1,1],[1,0,1],[1,1,1]], dtype=np.uint8)
+        kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.uint8)
         free = (map_array == 0).astype(np.uint8)  # Only consider free space
         unknown = (map_array == -1).astype(np.uint8)
         border = cv2.dilate(free, kernel, iterations=1)
@@ -106,33 +106,40 @@ class FrontierExploration(Node):
             if np.any(region == 100):
                 continue
 
+            # Check for free space neighbors
+            larger_region = map_array[max(0, y-2):min(height, y+3), max(0, x-2):min(width, x+3)]
+            free_count = np.sum(larger_region == 0)
+            if free_count < self.min_free_neighbors:
+                continue  # Skip if not enough free space neighbors
+
             # Convert to world coordinates
             world_x = origin.position.x + x * resolution
             world_y = origin.position.y + y * resolution
 
             # Skip if too close to current position
             dist = np.hypot(world_x - (origin.position.x + center_x * resolution),
-                          world_y - (origin.position.y + center_y * resolution))
+                            world_y - (origin.position.y + center_y * resolution))
             if dist < min_distance:
                 continue
 
             # Skip if same as last goal
             if self.last_goal_coords and np.hypot(world_x - self.last_goal_coords[0],
-                                                world_y - self.last_goal_coords[1]) < 0.05:
+                                                 world_y - self.last_goal_coords[1]) < 0.05:
                 continue
 
-            valid_coords.append((y, x, world_x, world_y))
+            valid_coords.append((y, x, world_x, world_y, free_count))
 
         if not valid_coords:
-            self.get_logger().info('No valid frontiers found')
+            self.get_logger().info('No valid frontiers with sufficient free space found')
             return None
 
-        # Sort by distance to center (Euclidean distance)
-        valid_coords.sort(key=lambda c: (c[2] - (origin.position.x + center_x * resolution))**2 +
-                                       (c[3] - (origin.position.y + center_y * resolution))**2)
+        # Sort by number of free space neighbors (descending) and then by distance to center
+        valid_coords.sort(key=lambda c: (-c[4],  # Prioritize free space neighbors
+                                        (c[2] - (origin.position.x + center_x * resolution))**2 +
+                                        (c[3] - (origin.position.y + center_y * resolution))**2))
 
-        # Select closest valid frontier
-        _, _, world_x, world_y = valid_coords[0]
+        # Select the frontier with the most free space neighbors
+        _, _, world_x, world_y, _ = valid_coords[0]
         return (world_x, world_y)
 
     def is_goal_still_frontier(self, goal_coords):
@@ -160,7 +167,7 @@ class FrontierExploration(Node):
         region = map_array[max(0, y_idx-1):min(height, y_idx+2), max(0, x_idx-1):min(width, x_idx+2)]
         is_unknown = np.any(region == -1)  # Check for unknown cells
         is_free_nearby = np.any(map_array[max(0, y_idx-2):min(height, y_idx+3),
-                                        max(0, x_idx-2):min(width, x_idx+3)] == 0)  # Check for free space nearby
+                                         max(0, x_idx-2):min(width, x_idx+3)] == 0)  # Check for free space nearby
 
         return is_unknown and is_free_nearby
 
