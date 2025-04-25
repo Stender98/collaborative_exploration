@@ -1,6 +1,7 @@
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction
+from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory
 import os
 
@@ -8,10 +9,8 @@ def generate_launch_description():
     # Define paths
     repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../epuck_nav2_pkg'))
     controller_path = os.path.join(repo_dir, 'scripts/swarm_nav_controller.py')
-    config_path = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config', 'swarm_nav2_params.yaml')
-
-    # RViz configuration file path (optional, adjust as needed)
-    rviz_config_path = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config', 'nav2_rviz_config.rviz')
+    config_dir = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config')
+    rviz_config_path = os.path.join(config_dir, 'nav2_rviz_config.rviz')
 
     # Webots controller path
     webots_controller = '/usr/local/webots/webots-controller' if os.getenv('USER') == 'markus' else '/snap/webots/27/usr/share/webots/webots-controller'
@@ -19,43 +18,60 @@ def generate_launch_description():
     # Nav2 launch file
     nav2_launch_file = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')
 
-    # Define the controller launch action
-    controller_launch = ExecuteProcess(
-        cmd=[webots_controller, controller_path],
-        output='screen',
-        name='epuck_controller'
+
+    num_robots = DeclareLaunchArgument(
+        'num_robots',
+        default_value='2',
+        description='Number of robots to launch'
     )
 
-    # Define the Nav2 bringup action
-    nav2_bringup = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(nav2_launch_file),
-        launch_arguments={
-            'slam': 'True',              # Enable SLAM mode
-            'params_file': config_path,  # Nav2 params
-            'map': '',                   # No static map
-            'use_sim_time': 'True',      # Use simulation time
-            'autostart': 'True',         # Auto-start lifecycle nodes
-        }.items()
-    )
+    # Initialize LaunchDescription
+    ld = LaunchDescription([num_robots])
 
-    # Define the RViz launch action
+    # Generate launch actions for each robot
+    for i in range(2):
+        robotid = f'robot{i}'
+        namespace = f'/{robotid}'
+        config_path = os.path.join(config_dir, f'nav2_params_{robotid}.yaml')
+
+        # Webots controller (runs EPuckController with FrontierExploration)
+        controller_launch = ExecuteProcess(
+            cmd=[webots_controller, f'--robot-name={robotid}', controller_path],
+            output='screen',
+            name=f'epuck_controller_{robotid}',
+            shell=True
+        )
+
+        # Nav2 bringup (no SLAM, using external merged map)
+        nav2_bringup = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(nav2_launch_file),
+            launch_arguments={
+                'namespace': namespace,
+                'slam': 'False',
+                'params_file': config_path,
+                'map': '',
+                'use_sim_time': 'True',
+                'autostart': 'True',
+            }.items()
+        )
+
+        # Add actions with staggered delays
+        ld.add_action(controller_launch)
+        ld.add_action(TimerAction(
+            period=5.0 + i * 1.0,  # Stagger Nav2 bringup
+            actions=[nav2_bringup]
+        ))
+
+    # Single RViz instance to visualize all robots
     rviz_launch = ExecuteProcess(
-        cmd=['rviz2', '-d', rviz_config_path],  # Use custom config file
-        # cmd=['rviz2'],  # Uncomment to launch RViz without a config file
+        cmd=['rviz2', '-d', rviz_config_path],
         output='screen',
         name='rviz2'
     )
 
-    return LaunchDescription([
-        # e-puck controller with Webots (starts immediately)
-        controller_launch,
-        # Nav2 bringup with a 2-second delay
-        TimerAction(
-            period=5.0,  # Delay in seconds
-            actions=[nav2_bringup]
-        ),
-        TimerAction(
-            period=6.0,  # Delay in seconds
-            actions=[rviz_launch]
-        )
-    ])
+    ld.add_action(TimerAction(
+        period=8.0,  # Start RViz after all robots
+        actions=[rviz_launch]
+    ))
+
+    return ld

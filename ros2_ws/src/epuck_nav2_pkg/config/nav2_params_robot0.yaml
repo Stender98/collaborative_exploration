@@ -6,7 +6,7 @@ amcl:
         alpha3: 0.2
         alpha4: 0.2
         alpha5: 0.2
-        base_frame_id: 'robot_1/base_footprint' # Matches controller
+        base_frame_id: 'robot0/base_footprint' # Matches controller
         beam_skip_distance: 0.5
         beam_skip_error_threshold: 0.9
         beam_skip_threshold: 0.3
@@ -20,7 +20,7 @@ amcl:
         max_beams: 60
         max_particles: 500
         min_particles: 100
-        odom_frame_id: 'robot_1/odom'
+        odom_frame_id: 'robot0/odom'
         pf_err: 0.05
         pf_z: 0.99
         recovery_alpha_fast: 0.0
@@ -37,7 +37,7 @@ amcl:
         z_max: 0.05
         z_rand: 0.5
         z_short: 0.05
-        scan_topic: 'robot_1/scan'
+        scan_topic: 'robot0/scan'
 
 bt_navigator:
     ros__parameters:
@@ -347,7 +347,7 @@ velocity_smoother:
         min_velocity: [-0.25, 0.0, -6.28] # E-puck: min linear, 0 lateral, min angular
         max_accel: [2.0, 0.0, 12.0] # Adjusted for e-puck
         max_decel: [-2.0, 0.0, -12.0] # Adjusted for e-puck
-        odom_topic: 'robot_1/odom'
+        odom_topic: 'robot0/odom'
         odom_duration: 0.1
         deadband_velocity: [0.0, 0.0, 0.0]
         velocity_timeout: 1.0
@@ -355,8 +355,8 @@ velocity_smoother:
 collision_monitor:
     ros__parameters:
         use_sim_time: True
-        base_frame_id: 'robot_1/base_footprint' # Already correct
-        odom_frame_id: 'robot_1/odom'
+        base_frame_id: 'robot0/base_footprint' # Already correct
+        odom_frame_id: 'robot0/odom'
         cmd_vel_in_topic: 'cmd_vel_smoothed'
         cmd_vel_out_topic: 'cmd_vel'
         state_topic: 'collision_monitor_state'
@@ -392,8 +392,8 @@ docking_server:
         undock_linear_tolerance: 0.05
         undock_angular_tolerance: 0.5
         max_retries: 3
-        base_frame: 'robot_1/base_footprint' # Changed to match controller
-        fixed_frame: 'robot_1/odom'
+        base_frame: 'robot0/base_footprint' # Changed to match controller
+        fixed_frame: 'robot0/odom'
         dock_backwards: false
         dock_prestaging_tolerance: 0.5
 
@@ -438,8 +438,8 @@ docking_server:
 loopback_simulator:
     ros__parameters:
         use_sim_time: True
-        base_frame_id: 'robot_1/base_footprint' # Already correct
-        odom_frame_id: 'robot_1/odom'
+        base_frame_id: 'robot0/base_footprint' # Already correct
+        odom_frame_id: 'robot0/odom'
         map_frame_id: 'map'
         scan_frame_id: 'laser' # Changed to match controller’s LIDAR frame
         update_duration: 0.02

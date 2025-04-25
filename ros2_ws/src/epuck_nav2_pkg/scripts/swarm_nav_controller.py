@@ -12,7 +12,7 @@ import tf2_ros
 from nav2_msgs.action import NavigateToPose
 from controller import Robot, Keyboard
 import numpy as np
-from frontier import FrontierExploration
+from swarm_frontier import FrontierExploration
 
 # Constants
 MAX_SPEED = 6  # E-puck max velocity is 6.28 rad/s
@@ -82,13 +82,13 @@ class EPuckController(Node):
         # Subscriber for Nav2 velocity commands
         self.latest_cmd_vel = Twist()
         self.last_cmd_vel_time = self.get_clock().now()
-        self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
+        self.create_subscription(Twist, f'/{self.robot_id}/cmd_vel', self.cmd_vel_callback, 10)
 
-        # Subscriber for /goal topic (NEW)
-        self.create_subscription(PointStamped, '/goal', self.goal_callback, 10)
+        # Subscriber for namespaced /goal topic
+        self.create_subscription(PointStamped, f'/{self.robot_id}/goal', self.goal_callback, 10)
 
-        # Action client for Nav2 (NEW)
-        self.nav2_client = ActionClient(self, NavigateToPose, '/navigate_to_pose')
+        # Action client for Nav2 (namespaced)
+        self.nav2_client = ActionClient(self, NavigateToPose, f'/{self.robot_id}/navigate_to_pose')
 
         # Control mode state
         self.use_keyboard = False  # Start with Nav2 by default
