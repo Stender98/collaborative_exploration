@@ -9,7 +9,7 @@ import tf2_ros
 from controller import Robot, Keyboard
 import numpy as np
 
-TIME_STEP = 128  # Webots simulation time step
+TIME_STEP = 50  # Webots simulation time step
 MAX_SPEED = 6  # E-puck max velocity is 6.28 rad/s
 
 # System status
@@ -64,7 +64,7 @@ tf_broadcaster = tf2_ros.TransformBroadcaster(publicist)
 
 # Subscriber for Nav2 velocity commands
 cmd_vel_subscriber = publicist.create_subscription(
-    Twist, '/cmd_vel_nav', lambda msg: cmd_vel_callback(msg), 10  # Fixed topic to match Nav2
+    Twist, '/cmd_vel', lambda msg: cmd_vel_callback(msg), 10
 )
 
 # Store latest Nav2 command
@@ -73,7 +73,6 @@ latest_cmd_vel = Twist()
 def cmd_vel_callback(msg):
     global latest_cmd_vel
     latest_cmd_vel = msg
-
 
 # Lidar setup
 if ENABLE_LIDAR:
@@ -226,6 +225,7 @@ try:
                 left_speed = MAX_SPEED * 0.3
                 right_speed = -MAX_SPEED * 0.3
         else:
+            print('else hehe')
             # Nav2 control
             linear = latest_cmd_vel.linear.x
             angular = latest_cmd_vel.angular.z
