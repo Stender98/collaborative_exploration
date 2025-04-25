@@ -1,11 +1,20 @@
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction, DeclareLaunchArgument
+from launch.actions import (
+    ExecuteProcess,
+    IncludeLaunchDescription,
+    TimerAction,
+    DeclareLaunchArgument,
+    LogInfo
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
+    # Print for debugging
+    print("Generating launch description...")
+
     # Define paths
     repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../epuck_nav2_pkg'))
     controller_path = os.path.join(repo_dir, 'scripts/swarm_nav_controller.py')
@@ -15,26 +24,37 @@ def generate_launch_description():
     # Webots controller path
     webots_controller = '/usr/local/webots/webots-controller' if os.getenv('USER') == 'markus' else '/snap/webots/27/usr/share/webots/webots-controller'
 
-    # Nav2 launch file
+    # Nav2 launch file path
     nav2_launch_file = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')
 
+    # Assert paths to help with debugging
+    assert os.path.exists(controller_path), f"Missing controller script: {controller_path}"
+    assert os.path.exists(config_dir), f"Missing config directory: {config_dir}"
+    #assert os.path.exists(rviz_config_path), f"Missing RViz config: {rviz_config_path}"
+    assert os.path.exists(nav2_launch_file), f"Missing Nav2 launch file: {nav2_launch_file}"
 
-    num_robots = DeclareLaunchArgument(
+    # Declare launch arguments
+    num_robots_arg = DeclareLaunchArgument(
         'num_robots',
         default_value='2',
         description='Number of robots to launch'
     )
 
-    # Initialize LaunchDescription
-    ld = LaunchDescription([num_robots])
+    ld = LaunchDescription()
+    ld.add_action(num_robots_arg)
 
-    # Generate launch actions for each robot
-    for i in range(2):
+    # Set number of robots statically for now
+    num_robots = 2
+
+    # Launch loop
+    for i in range(num_robots):
         robotid = f'robot{i}'
         namespace = f'/{robotid}'
         config_path = os.path.join(config_dir, f'nav2_params_{robotid}.yaml')
 
-        # Webots controller (runs EPuckController with FrontierExploration)
+        assert os.path.exists(config_path), f"Missing config for {robotid}: {config_path}"
+
+        # EPuck Webots controller
         controller_launch = ExecuteProcess(
             cmd=[webots_controller, f'--robot-name={robotid}', controller_path],
             output='screen',
@@ -42,7 +62,7 @@ def generate_launch_description():
             shell=True
         )
 
-        # Nav2 bringup (no SLAM, using external merged map)
+        # Nav2 bringup
         nav2_bringup = IncludeLaunchDescription(
             PythonLaunchDescriptionSource(nav2_launch_file),
             launch_arguments={
@@ -55,14 +75,20 @@ def generate_launch_description():
             }.items()
         )
 
-        # Add actions with staggered delays
+        # Add controller
+        ld.add_action(LogInfo(msg=f"Launching EPuck controller for {robotid}"))
         ld.add_action(controller_launch)
+
+        # Staggered Nav2 startup
         ld.add_action(TimerAction(
-            period=5.0 + i * 1.0,  # Stagger Nav2 bringup
-            actions=[nav2_bringup]
+            period=5.0 + i * 1.0,
+            actions=[
+                LogInfo(msg=f"Launching Nav2 for {robotid}"),
+                nav2_bringup
+            ]
         ))
 
-    # Single RViz instance to visualize all robots
+    # RViz launch
     rviz_launch = ExecuteProcess(
         cmd=['rviz2', '-d', rviz_config_path],
         output='screen',
@@ -70,8 +96,11 @@ def generate_launch_description():
     )
 
     ld.add_action(TimerAction(
-        period=8.0,  # Start RViz after all robots
-        actions=[rviz_launch]
+        period=8.0 + num_robots,
+        actions=[
+            LogInfo(msg="Launching RViz2..."),
+            rviz_launch
+        ]
     ))
 
     return ld
