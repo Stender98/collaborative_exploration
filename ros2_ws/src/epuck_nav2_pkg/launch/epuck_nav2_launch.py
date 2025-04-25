@@ -7,8 +7,8 @@ import os
 def generate_launch_description():
     # Define paths
     repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../epuck_nav2_pkg'))
-    controller_path = os.path.join(repo_dir, 'scripts/epuck_controller_nav2.py')
-    config_path = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config', 'nav2_params.yaml')
+    controller_path = os.path.join(repo_dir, 'scripts/swarm_nav_controller.py')
+    config_path = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config', 'swarm_nav2_params.yaml')
 
     # RViz configuration file path (optional, adjust as needed)
     rviz_config_path = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config', 'nav2_rviz_config.rviz')
