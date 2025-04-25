@@ -82,13 +82,13 @@ class EPuckController(Node):
         # Subscriber for Nav2 velocity commands
         self.latest_cmd_vel = Twist()
         self.last_cmd_vel_time = self.get_clock().now()
-        self.create_subscription(Twist, f'/{self.robot_id}/cmd_vel', self.cmd_vel_callback, 10)
+        self.create_subscription(Twist, f'/{self.robot.getName()}/cmd_vel', self.cmd_vel_callback, 10)
 
         # Subscriber for namespaced /goal topic
-        self.create_subscription(PointStamped, f'/{self.robot_id}/goal', self.goal_callback, 10)
+        self.create_subscription(PointStamped, f'/{self.robot.getName()}/goal', self.goal_callback, 10)
 
         # Action client for Nav2 (namespaced)
-        self.nav2_client = ActionClient(self, NavigateToPose, f'/{self.robot_id}/navigate_to_pose')
+        self.nav2_client = ActionClient(self, NavigateToPose, f'/{self.robot.getName()}/navigate_to_pose')
 
         # Control mode state
         self.use_keyboard = False  # Start with Nav2 by default
@@ -248,7 +248,7 @@ class EPuckController(Node):
         self.get_logger().info("Controller started. Arrow keys override Nav2; Nav2 resumes when keys are idle.")
         executor = MultiThreadedExecutor()
         executor.add_node(self)
-        frontier_node = FrontierExploration()
+        frontier_node = FrontierExploration(self.robot.getName())
         executor.add_node(frontier_node)
 
         # Initial TF and clock publish
