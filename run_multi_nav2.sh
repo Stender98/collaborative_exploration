@@ -92,14 +92,14 @@ $TERMINAL --tab --title="Webots" -- bash -c "$WEBOTS_CMD $WORLD_PATH; exec bash"
 sleep 2
 
 # Step 2: Launch Webots controllers for each robot
-for ((i=0; i<NUM_ROBOTS; i++)); do
-    ROBOT_ID="robot$i"
-    echo "Launching controller for $ROBOT_ID..."
-    $TERMINAL --tab --title="Controller $ROBOT_ID" -- bash -c \
-        "source $ROS_SETUP && source $WORKSPACE_SETUP && \
-         $WEBOTS_CONTROLLER --robot-name=$ROBOT_ID $CONTROLLER_PATH --robot-id=$ROBOT_ID; exec bash" &
-    sleep 1  # Stagger controller launches
-done
+#for ((i=0; i<NUM_ROBOTS; i++)); do
+#    ROBOT_ID="robot$i"
+#    echo "Launching controller for $ROBOT_ID..."
+#    $TERMINAL --tab --title="Controller $ROBOT_ID" -- bash -c \
+#       "source $ROS_SETUP && source $WORKSPACE_SETUP && \
+#         $WEBOTS_CONTROLLER --robot-name=$ROBOT_ID $CONTROLLER_PATH --robot-id=$ROBOT_ID; exec bash" &
+#    sleep 1  # Stagger controller launches
+#done
 
 # Step 3: Launch SLAM Toolbox for multi-robot map merging
 echo "Launching SLAM Toolbox (online_async_multirobot_launch.py)..."
