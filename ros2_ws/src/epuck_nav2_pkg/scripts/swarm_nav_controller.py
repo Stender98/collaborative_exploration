@@ -74,9 +74,9 @@ class EPuckController(Node):
             )
 
         # ROS 2 publishers and broadcasters
-        self.odom_publisher = self.create_publisher(Odometry, '/odom', 10)
-        self.scan_publisher = self.create_publisher(LaserScan, '/scan', 10)
-        self.clock_publisher = self.create_publisher(Clock, '/clock', 10)
+        self.odom_publisher = self.create_publisher(Odometry, self.robot.getName() + '/odom', 10)
+        self.scan_publisher = self.create_publisher(LaserScan, self.robot.getName() + '/scan', 10)
+        self.clock_publisher = self.create_publisher(Clock, self.robot.getName() + '/clock', 10)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
         # Subscriber for Nav2 velocity commands
@@ -148,7 +148,7 @@ class EPuckController(Node):
 
         msg = LaserScan()
         msg.header.stamp = clock
-        msg.header.frame_id = "laser"
+        msg.header.frame_id = self.robot.getName() + "/laser"
         msg.angle_min = -np.pi
         msg.angle_max = np.pi
         msg.angle_increment = np.pi * 2 / len(ranges)
@@ -198,8 +198,8 @@ class EPuckController(Node):
         # Odometry message
         odom_msg = Odometry()
         odom_msg.header.stamp = clock
-        odom_msg.header.frame_id = "odom"
-        odom_msg.child_frame_id = "base_footprint"
+        odom_msg.header.frame_id = self.robot.getName() + "/odom"
+        odom_msg.child_frame_id = self.robot.getName() + "/base_footprint"
         odom_msg.pose.pose.position.x = self.x if not np.isnan(self.x) else 0.0
         odom_msg.pose.pose.position.y = self.y if not np.isnan(self.y) else 0.0
         odom_msg.pose.pose.position.z = 0.0
@@ -218,8 +218,8 @@ class EPuckController(Node):
         # TF: odom -> base_footprint
         transform = TransformStamped()
         transform.header.stamp = clock
-        transform.header.frame_id = "odom"
-        transform.child_frame_id = "base_footprint"
+        transform.header.frame_id = self.robot.getName() + "/odom"
+        transform.child_frame_id = self.robot.getName() + "/base_footprint"
         transform.transform.translation.x = self.x if not np.isnan(self.x) else 0.0
         transform.transform.translation.y = self.y if not np.isnan(self.y) else 0.0
         transform.transform.translation.z = 0.0
@@ -229,16 +229,16 @@ class EPuckController(Node):
         # TF: base_footprint -> base_link
         base_link_tf = TransformStamped()
         base_link_tf.header.stamp = clock
-        base_link_tf.header.frame_id = "base_footprint"
-        base_link_tf.child_frame_id = "base_link"
+        base_link_tf.header.frame_id = self.robot.getName() + "/base_footprint"
+        base_link_tf.child_frame_id = self.robot.getName() + "/base_link"
         base_link_tf.transform.rotation.w = 1.0
         self.tf_broadcaster.sendTransform(base_link_tf)
 
         # TF: base_link -> laser
         laser_tf = TransformStamped()
         laser_tf.header.stamp = clock
-        laser_tf.header.frame_id = "base_link"
-        laser_tf.child_frame_id = "laser"
+        laser_tf.header.frame_id = self.robot.getName() + "/base_link"
+        laser_tf.child_frame_id = self.robot.getName() + "/laser"
         laser_tf.transform.translation.z = 0.05
         laser_tf.transform.rotation.w = 1.0
         self.tf_broadcaster.sendTransform(laser_tf)
