@@ -8,6 +8,7 @@ from launch.actions import (
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from nav2_common.launch import ReplaceString
 from ament_index_python.packages import get_package_share_directory
 import os
 
@@ -20,6 +21,7 @@ def generate_launch_description():
     controller_path = os.path.join(repo_dir, 'scripts/swarm_nav_controller.py')
     config_dir = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config')
     rviz_config_path = os.path.join(config_dir, 'nav2_rviz_config.rviz')
+    config_path = os.path.join(config_dir, f'nav2_params_swarm.yaml')
 
     # Webots controller path
     webots_controller = '/usr/local/webots/webots-controller' if os.getenv('USER') == 'markus' else '/snap/webots/27/usr/share/webots/webots-controller'
@@ -49,9 +51,12 @@ def generate_launch_description():
     # Launch loop
     for i in range(num_robots):
         namespace= f'robot{i}'
-        config_path = os.path.join(config_dir, f'nav2_params_{namespace}.yaml')
-
-        assert os.path.exists(config_path), f"Missing config for {namespace}: {config_path}"
+       
+       # Dynamically namespace the parameter file
+        namespaced_params = ReplaceString(
+            source_file=config_path,
+            replacements={'/namespace': ('/', namespace)}  # Replace '/namespace' with '/robot{i}'
+        )
 
         # EPuck Webots controller
         controller_launch = ExecuteProcess(
@@ -66,7 +71,7 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(nav2_launch_file),
             launch_arguments={
                 'slam': 'False',
-                'params_file': config_path,
+                'params_file': namespaced_params,
                 'use_sim_time': 'True',
                 'autostart': 'True',
             }.items()
