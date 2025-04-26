@@ -37,7 +37,7 @@ amcl:
         z_max: 0.05
         z_rand: 0.5
         z_short: 0.05
-        scan_topic: scan
+        scan_topic: /namespace/scan
 
 bt_navigator:
     ros__parameters:
@@ -197,7 +197,7 @@ local_costmap:
             height: 3
             resolution: 0.01
             robot_radius: 0.0355 # E-puck radius (keep as is)
-            plugins: ['voxel_layer', 'inflation_layer']
+            plugins: ['voxel_layer', 'inflation_layer', 'obstacle_layer']
             inflation_layer:
                 plugin: 'nav2_costmap_2d::InflationLayer'
                 cost_scaling_factor: 30.0 # Increase to make cost drop off faster (less bloating)
@@ -439,7 +439,7 @@ docking_server:
             v_linear_max: 0.15
             use_collision_detection: true
             costmap_topic: /namespace/local_costmap/costmap_raw
-            footprint_topic: /namespace/local_costmap/published_footprint'
+            footprint_topic: /namespace/local_costmap/published_footprint
             transform_tolerance: 1.0
             projection_time: 5.0
             simulation_step: 0.1

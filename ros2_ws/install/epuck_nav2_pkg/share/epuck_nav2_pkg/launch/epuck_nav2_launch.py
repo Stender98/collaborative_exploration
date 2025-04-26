@@ -11,6 +11,8 @@ from launch.substitutions import LaunchConfiguration
 from nav2_common.launch import ReplaceString
 from ament_index_python.packages import get_package_share_directory
 import os
+from launch_ros.actions import PushRosNamespace
+from launch.actions import GroupAction
 
 def generate_launch_description():
     # Print for debugging
@@ -67,15 +69,19 @@ def generate_launch_description():
         )
 
         # Nav2 bringup
-        nav2_bringup = IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(nav2_launch_file),
-            launch_arguments={
-                'slam': 'False',
-                'params_file': namespaced_params,
-                'use_sim_time': 'True',
-                'autostart': 'True',
-            }.items()
-        )
+        nav2_bringup = GroupAction([
+            PushRosNamespace(namespace),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(nav2_launch_file),
+                launch_arguments={
+                    'namespace': namespace,
+                    'slam': 'True',
+                    'params_file': namespaced_params,
+                    'use_sim_time': 'True',
+                    'autostart': 'True',
+                }.items()
+            )
+]       )
 
         # Add controller
         ld.add_action(LogInfo(msg=f"Launching EPuck controller for {namespace}"))

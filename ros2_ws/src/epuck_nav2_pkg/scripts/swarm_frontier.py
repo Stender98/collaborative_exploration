@@ -8,6 +8,7 @@ from rclpy.action import ActionClient
 from action_msgs.msg import GoalStatus
 import cv2
 from std_msgs.msg import String
+from geometry_msgs.msg import PointStamped
 
 class FrontierExploration(Node):
     def __init__(self, robot_name: str):
@@ -81,11 +82,13 @@ class FrontierExploration(Node):
 
     def publish_assigned_frontier(self, goal_coords):
         """Publish the assigned frontier to the shared topic."""
-        frontier_msg = Point()
-        frontier_msg.x = goal_coords[0]
-        frontier_msg.y = goal_coords[1]
-        frontier_msg.z = self.get_clock().now().nanoseconds / 1e9  # Timestamp
-        frontier_msg._frame_id = self.robot_name  # Use frame_id to store robot_id
+        frontier_msg = PointStamped()
+        frontier_msg.header.stamp = self.get_clock().now().to_msg()
+        frontier_msg.header.frame_id = self.robot_name  # Now properly store robot_id here
+        frontier_msg.point.x = goal_coords[0]
+        frontier_msg.point.y = goal_coords[1]
+        frontier_msg.point.z = 0.0  # or timestamp if you want, but maybe better to use header.stamp
+
         self.frontier_publisher.publish(frontier_msg)
 
     def map_callback(self, msg):
