@@ -43,8 +43,8 @@ bt_navigator:
     ros__parameters:
         use_sim_time: True
         global_frame: map
-        robot_base_frame: base_footprint # Changed to match controller
-        odom_topic: /odom
+        robot_base_frame: robot1/base_footprint # Changed to match controller
+        odom_topic: robot1/odom
         bt_loop_duration: 10
         default_server_timeout: 20
         wait_for_service_timeout: 1000
@@ -190,8 +190,8 @@ local_costmap:
             update_frequency: 5.0
             publish_frequency: 2.0
             transform_tolerance: 1.0
-            global_frame: odom
-            robot_base_frame: base_footprint
+            global_frame: robot1/odom
+            robot_base_frame: robot1/base_footprint
             rolling_window: true
             width: 3
             height: 3
@@ -213,7 +213,7 @@ local_costmap:
                 mark_threshold: 0
                 observation_sources: scan
                 scan:
-                    topic: /scan
+                    topic: /robot1/scan
                     max_obstacle_height: 0.15
                     clearing: True
                     marking: True
@@ -232,7 +232,7 @@ global_costmap:
             publish_frequency: 1.0
             transform_tolerance: 1.0
             global_frame: map
-            robot_base_frame: base_footprint
+            robot_base_frame: robot1/base_footprint
             robot_radius: 0.0355 # E-puck radius (keep as is)
             resolution: 0.01
             track_unknown_space: true
@@ -242,7 +242,7 @@ global_costmap:
                 enabled: True
                 observation_sources: scan
                 scan:
-                    topic: /scan
+                    topic: /robot1/scan
                     max_obstacle_height: 0.15
                     clearing: True
                     marking: True
@@ -316,9 +316,9 @@ behavior_server:
             plugin: 'nav2_behaviors::Wait'
         assisted_teleop:
             plugin: 'nav2_behaviors::AssistedTeleop'
-        local_frame: odom
+        local_frame: robot1/odom
         global_frame: map
-        robot_base_frame: base_footprint # Changed to match controller
+        robot_base_frame: robot1/base_footprint # Changed to match controller
         transform_tolerance: 1.0
         simulate_ahead_time: 2.0
         max_rotational_vel: 6.28 # E-puck max rotation speed
@@ -377,7 +377,7 @@ collision_monitor:
         observation_sources: ['scan']
         scan:
             type: 'scan'
-            topic: 'scan'
+            topic: 'robot1/scan'
             min_height: 0.0
             max_height: 0.15
             enabled: True

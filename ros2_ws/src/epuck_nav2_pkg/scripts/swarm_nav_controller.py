@@ -28,11 +28,11 @@ ENABLE_DIST = False
 
 class EPuckController(Node):
     def __init__(self):
-        super().__init__('epuck_controller')
+        self.robot = Robot()
+        super().__init__('epuck_controller_' + self.robot.getName())
         self.get_logger().info("Using simulation time")
 
         # Webots setup
-        self.robot = Robot()
         global TIME_STEP
         TIME_STEP = int(self.robot.getBasicTimeStep())
         print("Time step is: ", TIME_STEP)

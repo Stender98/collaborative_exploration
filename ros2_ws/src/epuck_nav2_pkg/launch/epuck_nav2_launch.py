@@ -48,17 +48,16 @@ def generate_launch_description():
 
     # Launch loop
     for i in range(num_robots):
-        robotid = f'robot{i}'
-        namespace = f'/{robotid}'
-        config_path = os.path.join(config_dir, f'nav2_params_{robotid}.yaml')
+        namespace= f'robot{i}'
+        config_path = os.path.join(config_dir, f'nav2_params_{namespace}.yaml')
 
-        assert os.path.exists(config_path), f"Missing config for {robotid}: {config_path}"
+        assert os.path.exists(config_path), f"Missing config for {namespace}: {config_path}"
 
         # EPuck Webots controller
         controller_launch = ExecuteProcess(
-            cmd=[webots_controller, f'--robot-name={robotid}', controller_path],
+            cmd=[webots_controller, f'--robot-name={namespace}', controller_path],
             output='screen',
-            name=f'epuck_controller_{robotid}',
+            name=f'epuck_controller_{namespace}',
             shell=True
         )
 
@@ -72,21 +71,23 @@ def generate_launch_description():
                 'map': '',
                 'use_sim_time': 'True',
                 'autostart': 'True',
+                'shell': 'True'
             }.items()
         )
 
         # Add controller
-        ld.add_action(LogInfo(msg=f"Launching EPuck controller for {robotid}"))
+        ld.add_action(LogInfo(msg=f"Launching EPuck controller for {namespace}"))
         ld.add_action(controller_launch)
 
         # Staggered Nav2 startup
         ld.add_action(TimerAction(
             period=5.0 + i * 1.0,
             actions=[
-                LogInfo(msg=f"Launching Nav2 for {robotid}"),
+                LogInfo(msg=f"Launching Nav2 for {namespace} with config: {config_path}"),
                 nav2_bringup
             ]
         ))
+    ld.add_action(LogInfo(msg=f"Attempting to include Nav2 launch file: {nav2_launch_file}"))
 
     # RViz launch
     rviz_launch = ExecuteProcess(
