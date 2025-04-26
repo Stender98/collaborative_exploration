@@ -451,5 +451,5 @@ loopback_simulator:
         base_frame_id: base_footprint # Already correct
         odom_frame_id: odom
         map_frame_id: 'map'
-        scan_frame_id: 'laser' # Changed to match controller’s LIDAR frame
+        scan_frame_id: /namespace/laser # Changed to match controller’s LIDAR frame
         update_duration: 0.02
