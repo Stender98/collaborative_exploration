@@ -65,13 +65,10 @@ def generate_launch_description():
         nav2_bringup = IncludeLaunchDescription(
             PythonLaunchDescriptionSource(nav2_launch_file),
             launch_arguments={
-                'namespace': namespace,
                 'slam': 'False',
                 'params_file': config_path,
-                'map': '',
                 'use_sim_time': 'True',
                 'autostart': 'True',
-                'shell': 'True'
             }.items()
         )
 
