@@ -28,7 +28,7 @@ def generate_launch_description():
     webots_controller = '/usr/local/webots/webots-controller' if os.getenv('USER') == 'markus' else '/snap/webots/27/usr/share/webots/webots-controller'
 
     # Nav2 launch file path
-    nav2_launch_file = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')
+    nav2_launch_file = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_my_launch.py')
 
     # Assert paths to help with debugging
     assert os.path.exists(controller_path), f"Missing controller script: {controller_path}"
@@ -48,6 +48,23 @@ def generate_launch_description():
 
     # Set number of robots statically for now
     num_robots = 2
+
+    bringup_dir = get_package_share_directory('nav2_bringup')
+    launch_dir = os.path.join(bringup_dir, 'launch')
+
+    slam_toolbox_bringup = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    os.path.join(launch_dir, 'slam_launch.py')
+                ),
+            )
+    
+    ld.add_action(TimerAction(
+        period=5.0 + num_robots,
+        actions=[
+            LogInfo(msg="Launching SLAM Toolbox..."),
+            slam_toolbox_bringup
+        ]
+    ))
 
     # Launch loop
     for i in range(num_robots):
