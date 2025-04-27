@@ -77,7 +77,7 @@ def generate_launch_description():
                 PythonLaunchDescriptionSource(nav2_launch_file),
                 launch_arguments={
                     'namespace': namespace,
-                    'slam': 'False',
+                    'slam': 'True',
                     'params_file': namespaced_params,
                     'use_sim_time': 'True',
                     'autostart': 'True',
