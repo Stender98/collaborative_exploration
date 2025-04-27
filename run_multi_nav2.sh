@@ -102,13 +102,13 @@ sleep 2
 #done
 
 # Step 3: Launch SLAM Toolbox for multi-robot map merging
-echo "Launching SLAM Toolbox (online_async_multirobot_launch.py)..."
-$TERMINAL --tab --title="SLAM Toolbox" -- bash -c \
-    "source $ROS_SETUP && source $WORKSPACE_SETUP && \
-     ros2 launch slam_toolbox online_async_multirobot_launch.py; exec bash" &
+#echo "Launching SLAM Toolbox (online_async_multirobot_launch.py)..."
+#$TERMINAL --tab --title="SLAM Toolbox" -- bash -c \
+#    "source $ROS_SETUP && source $WORKSPACE_SETUP && \
+#     ros2 launch slam_toolbox online_async_multirobot_launch.py; exec bash" &
 
 # Give SLAM Toolbox time to initialize
-sleep 5
+#sleep 5
 
 echo "Launching ROS 2 system with epuck_nav2_launch.py..."
 $TERMINAL --tab --title="ROS 2 System" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && ros2 launch epuck_nav2_pkg epuck_nav2_launch.py; exec bash" &
