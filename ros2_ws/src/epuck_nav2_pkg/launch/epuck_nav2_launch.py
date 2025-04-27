@@ -7,12 +7,11 @@ from launch.actions import (
     LogInfo
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
-from nav2_common.launch import ReplaceString
 from ament_index_python.packages import get_package_share_directory
 import os
 from launch_ros.actions import PushRosNamespace
 from launch.actions import GroupAction
+from nav2_common.launch import ReplaceString
 
 def generate_launch_description():
     # Print for debugging
@@ -54,11 +53,14 @@ def generate_launch_description():
     for i in range(num_robots):
         namespace= f'robot{i}'
        
-       # Dynamically namespace the parameter file
+        # Dynamically namespace the parameter file
         namespaced_params = ReplaceString(
             source_file=config_path,
-            replacements={'/namespace': ('/', namespace)}  # Replace '/namespace' with '/robot{i}'
+            replacements={'/namespace': f'/{namespace}',
+                          '/framenamespace': f'{namespace}',
+                          }  
         )
+        
 
         # EPuck Webots controller
         controller_launch = ExecuteProcess(
@@ -75,7 +77,7 @@ def generate_launch_description():
                 PythonLaunchDescriptionSource(nav2_launch_file),
                 launch_arguments={
                     'namespace': namespace,
-                    'slam': 'True',
+                    'slam': 'False',
                     'params_file': namespaced_params,
                     'use_sim_time': 'True',
                     'autostart': 'True',
@@ -89,7 +91,7 @@ def generate_launch_description():
 
         # Staggered Nav2 startup
         ld.add_action(TimerAction(
-            period=5.0 + i * 1.0,
+            period=10.0 + i * 1.0,
             actions=[
                 LogInfo(msg=f"Launching Nav2 for {namespace} with config: {config_path}"),
                 nav2_bringup

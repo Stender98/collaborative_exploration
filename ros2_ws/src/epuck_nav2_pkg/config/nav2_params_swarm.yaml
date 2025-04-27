@@ -6,7 +6,7 @@ amcl:
         alpha3: 0.2
         alpha4: 0.2
         alpha5: 0.2
-        base_frame_id: base_footprint # Matches controller
+        base_frame_id: /framenamespace/base_footprint # Matches controller
         beam_skip_distance: 0.5
         beam_skip_error_threshold: 0.9
         beam_skip_threshold: 0.3
@@ -20,7 +20,7 @@ amcl:
         max_beams: 60
         max_particles: 500
         min_particles: 100
-        odom_frame_id: odom
+        odom_frame_id: /framenamespace/odom
         pf_err: 0.05
         pf_z: 0.99
         recovery_alpha_fast: 0.0
@@ -43,7 +43,7 @@ bt_navigator:
     ros__parameters:
         use_sim_time: True
         global_frame: map
-        robot_base_frame: base_footprint # Changed to match controller
+        robot_base_frame: /framenamespace/base_footprint # Changed to match controller
         odom_topic: /namespace/odom
         bt_loop_duration: 10
         default_server_timeout: 20
@@ -189,9 +189,9 @@ local_costmap:
             use_sim_time: True
             update_frequency: 5.0
             publish_frequency: 2.0
-            transform_tolerance: 1.0
-            global_frame: odom
-            robot_base_frame: base_footprint
+            transform_tolerance: 2.0
+            global_frame: /framenamespace/odom
+            robot_base_frame: /framenamespace/base_footprint
             rolling_window: true
             width: 3
             height: 3
@@ -242,7 +242,7 @@ global_costmap:
             publish_frequency: 1.0
             transform_tolerance: 1.0
             global_frame: map
-            robot_base_frame: base_footprint
+            robot_base_frame: /framenamespace/base_footprint
             robot_radius: 0.0355 # E-puck radius (keep as is)
             resolution: 0.01
             track_unknown_space: true
@@ -326,9 +326,9 @@ behavior_server:
             plugin: 'nav2_behaviors::Wait'
         assisted_teleop:
             plugin: 'nav2_behaviors::AssistedTeleop'
-        local_frame: odom
+        local_frame: /framenamespace/odom
         global_frame: map
-        robot_base_frame: base_footprint # Changed to match controller
+        robot_base_frame: /framenamespace/base_footprint # Changed to match controller
         transform_tolerance: 1.0
         simulate_ahead_time: 2.0
         max_rotational_vel: 6.28 # E-puck max rotation speed
@@ -365,8 +365,8 @@ velocity_smoother:
 collision_monitor:
     ros__parameters:
         use_sim_time: True
-        base_frame_id: base_footprint # Already correct
-        odom_frame_id: odom
+        base_frame_id: /framenamespace/base_footprint # Already correct
+        odom_frame_id: /framenamespace/odom
         cmd_vel_in_topic: /namespace/cmd_vel_smoothed
         cmd_vel_out_topic: /namespace/cmd_vel
         state_topic: /namespace/collision_monitor_state
@@ -402,8 +402,8 @@ docking_server:
         undock_linear_tolerance: 0.05
         undock_angular_tolerance: 0.5
         max_retries: 3
-        base_frame: base_footprint # Changed to match controller
-        fixed_frame: odom
+        base_frame: /framenamespace/base_footprint # Changed to match controller
+        fixed_frame: /framenamespace/odom
         dock_backwards: false
         dock_prestaging_tolerance: 0.5
 
@@ -448,8 +448,8 @@ docking_server:
 loopback_simulator:
     ros__parameters:
         use_sim_time: True
-        base_frame_id: base_footprint # Already correct
-        odom_frame_id: odom
+        base_frame_id: /framenamespace/base_footprint # Already correct
+        odom_frame_id: /framenamespace/odom
         map_frame_id: 'map'
-        scan_frame_id: /namespace/laser # Changed to match controller’s LIDAR frame
+        scan_frame_id: /framenamespace/laser # Changed to match controller’s LIDAR frame
         update_duration: 0.02

@@ -2,13 +2,11 @@ import rclpy
 from rclpy.node import Node
 import numpy as np
 from nav_msgs.msg import OccupancyGrid
-from geometry_msgs.msg import PoseStamped, Point
+from geometry_msgs.msg import PoseStamped, PointStamped
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 from action_msgs.msg import GoalStatus
 import cv2
-from std_msgs.msg import String
-from geometry_msgs.msg import PointStamped
 
 class FrontierExploration(Node):
     def __init__(self, robot_name: str):
@@ -43,16 +41,16 @@ class FrontierExploration(Node):
             10
         )
 
-        # Publisher for assigned frontiers (shared topic)
+        # Publisher for assigned frontiers (shared topic, using PointStamped)
         self.frontier_publisher = self.create_publisher(
-            Point,
+            PointStamped,  # Changed from Point to PointStamped
             '/assigned_frontiers',
             10
         )
 
-        # Subscriber for assigned frontiers from other robots
+        # Subscriber for assigned frontiers from other robots (using PointStamped)
         self.frontier_subscription = self.create_subscription(
-            Point,
+            PointStamped,  # Changed from Point to PointStamped
             '/assigned_frontiers',
             self.frontier_callback,
             10
@@ -69,9 +67,10 @@ class FrontierExploration(Node):
 
     def frontier_callback(self, msg):
         """Store frontiers assigned by other robots."""
-        robot_id = msg._frame_id if msg._frame_id else 'unknown'
+        robot_id = msg.header.frame_id if msg.header.frame_id else 'unknown'
         if robot_id != self.robot_name:
-            self.other_frontiers[robot_id] = (msg.x, msg.y, msg.z)
+            # Use msg.point for coordinates
+            self.other_frontiers[robot_id] = (msg.point.x, msg.point.y, msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9)
             # Clean up old frontiers (older than 30 seconds)
             current_time = self.get_clock().now().nanoseconds / 1e9
             self.other_frontiers = {
@@ -84,10 +83,11 @@ class FrontierExploration(Node):
         """Publish the assigned frontier to the shared topic."""
         frontier_msg = PointStamped()
         frontier_msg.header.stamp = self.get_clock().now().to_msg()
-        frontier_msg.header.frame_id = self.robot_name  # Now properly store robot_id here
+        frontier_msg.header.frame_id = self.robot_name
         frontier_msg.point.x = goal_coords[0]
         frontier_msg.point.y = goal_coords[1]
-        frontier_msg.point.z = 0.0  # or timestamp if you want, but maybe better to use header.stamp
+        frontier_msg.point.z = 0.0
+        self.frontier_publisher.publish(frontier_msg)
 
         self.frontier_publisher.publish(frontier_msg)
 

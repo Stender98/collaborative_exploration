@@ -255,7 +255,7 @@ class EPuckController(Node):
         sim_time = self.robot.getTime()
         self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
         clock_now = self.get_clock().now().to_msg()
-        for _ in range(20):  # Publish early to ensure Nav2 sees TF and clock
+        for _ in range(200):  # Publish early to ensure Nav2 sees TF and clock
             self.publish_odom_and_tf(clock_now)
             self.publish_clock(clock_now)
             executor.spin_once(timeout_sec=0.01)
