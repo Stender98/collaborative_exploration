@@ -1,0 +1,39 @@
+slam_toolbox:
+    ros__parameters:
+        # General
+        mode: 'mapping' # "mapping" for SLAM, "localization" for AMCL
+        use_sim_time: True
+        transform_publish_period: 0.1 # 10 Hz
+        map_frame: 'map'
+        odom_frames: ['namespace']
+        base_frames: ['namespace']
+        scan_topics: ['namespace']
+        transform_tolerance: 1.0
+
+        # Sensor
+        max_laser_range: 3.5 # LDS-01 max range
+        minimum_travel_distance: 0.01 # Small for e-puck
+        minimum_travel_heading: 0.1
+        scan_buffer_size: 100
+        scan_buffer_maximum_scan_distance: 3.5
+
+        # Correlation
+        correlation_search_space_width: 0.5
+        correlation_search_space_height: 0.5
+        correlation_search_space_resolution: 0.01
+        loop_search_space_dimension: 1.0
+        loop_search_maximum_distance: 1.0
+
+        # Optimization
+        do_loop_closing: True
+        loop_match_minimum_chain_size: 10
+        loop_match_maximum_variance_coarse: 0.4
+        loop_match_minimum_response_coarse: 0.6
+        loop_match_minimum_response_fine: 0.8
+
+        # Map
+        map_update_interval: 1.0 # Update map every 1s
+        map_start_at_dock: False
+        resolution: 0.05
+        max_occupancy_value: 100
+        min_occupancy_value: 0

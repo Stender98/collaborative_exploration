@@ -12,6 +12,8 @@ import os
 from launch_ros.actions import PushRosNamespace
 from launch.actions import GroupAction
 from nav2_common.launch import ReplaceString
+import yaml
+import tempfile
 
 def generate_launch_description():
     # Print for debugging
@@ -23,6 +25,7 @@ def generate_launch_description():
     config_dir = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config')
     rviz_config_path = os.path.join(config_dir, 'nav2_rviz_config.rviz')
     config_path = os.path.join(config_dir, f'nav2_params_swarm.yaml')
+    slam_toolbox_config_path = os.path.join(config_dir, 'slam_toolbox_params.yaml')
 
     # Webots controller path
     webots_controller = '/usr/local/webots/webots-controller' if os.getenv('USER') == 'markus' else '/snap/webots/27/usr/share/webots/webots-controller'
@@ -48,14 +51,49 @@ def generate_launch_description():
 
     # Set number of robots statically for now
     num_robots = 2
+    namespaces = [f'robot{i}' for i in range(num_robots)]
+
+    # Load and modify Slam Toolbox parameters
+    with open(slam_toolbox_config_path, 'r') as file:
+        slam_toolbox_config = yaml.safe_load(file)
+
+    odom_frames = [f'{ns}/odom' for ns in namespaces]
+    base_frames = [f'{ns}/base_footprint' for ns in namespaces]
+    scan_topics = [f'{ns}/scan' for ns in namespaces]
+
+    # Update the configuration
+    slam_toolbox_config['slam_toolbox']['ros__parameters'].update({
+        'odom_frames': odom_frames,
+        'base_frames': base_frames,
+        'scan_topics': scan_topics
+    })
+
+    # Write the modified config to a temporary file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as temp_file:
+        yaml.dump(slam_toolbox_config, temp_file)
+        temp_slam_toolbox_config_path = temp_file.name
+
+    # Read and print the temporary file's contents
+    with open(temp_slam_toolbox_config_path, 'r') as temp_file:
+        temp_file_contents = temp_file.read()
+        print(f"Contents of temporary Slam Toolbox config file ({temp_slam_toolbox_config_path}):\n{temp_file_contents}")
 
     bringup_dir = get_package_share_directory('nav2_bringup')
     launch_dir = os.path.join(bringup_dir, 'launch')
+
+
+    for i in range(num_robots):
+        namespaces += f'robot{i}'
 
     slam_toolbox_bringup = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     os.path.join(launch_dir, 'slam_launch.py')
                 ),
+                launch_arguments={
+                    'use_sim_time': 'True',
+                    'autostart': 'True',
+                    'params_file': temp_slam_toolbox_config_path
+                }.items(),
             )
     
     ld.add_action(TimerAction(
