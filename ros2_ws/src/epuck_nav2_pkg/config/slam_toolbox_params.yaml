@@ -9,6 +9,7 @@ slam_toolbox:
         base_frames: ['namespace']
         scan_topics: ['namespace']
         transform_tolerance: 1.0
+        map: 'mymap'
 
         # Sensor
         max_laser_range: 3.5 # LDS-01 max range

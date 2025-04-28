@@ -73,11 +73,6 @@ def generate_launch_description():
         yaml.dump(slam_toolbox_config, temp_file)
         temp_slam_toolbox_config_path = temp_file.name
 
-    # Read and print the temporary file's contents
-    with open(temp_slam_toolbox_config_path, 'r') as temp_file:
-        temp_file_contents = temp_file.read()
-        print(f"Contents of temporary Slam Toolbox config file ({temp_slam_toolbox_config_path}):\n{temp_file_contents}")
-
     bringup_dir = get_package_share_directory('nav2_bringup')
     launch_dir = os.path.join(bringup_dir, 'launch')
 
@@ -132,7 +127,6 @@ def generate_launch_description():
                 PythonLaunchDescriptionSource(nav2_launch_file),
                 launch_arguments={
                     'namespace': namespace,
-                    'slam': 'True',
                     'params_file': namespaced_params,
                     'use_sim_time': 'True',
                     'autostart': 'True',
