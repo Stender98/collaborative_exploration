@@ -30,6 +30,8 @@ amcl:
         save_pose_rate: 0.5
         sigma_hit: 0.2
         tf_broadcast: true
+        tf_publish_topic: /tf
+        tf_static_publish_topic: /tf_static
         transform_tolerance: 1.0
         update_min_a: 0.2
         update_min_d: 0.25
@@ -189,7 +191,7 @@ local_costmap:
             use_sim_time: True
             update_frequency: 5.0
             publish_frequency: 2.0
-            transform_tolerance: 2.0
+            transform_tolerance: 20.0
             global_frame: <robot_frame_namespace>/odom
             robot_base_frame: <robot_frame_namespace>/base_footprint
             rolling_window: true
@@ -453,3 +455,5 @@ loopback_simulator:
         map_frame_id: 'map'
         scan_frame_id: <robot_frame_namespace>/laser # Changed to match controller’s LIDAR frame
         update_duration: 0.02
+        tf_topic: '/tf' # If supported
+        tf_static_topic: '/tf_static'

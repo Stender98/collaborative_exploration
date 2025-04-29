@@ -76,7 +76,7 @@ class EPuckController(Node):
         # ROS 2 publishers and broadcasters
         self.odom_publisher = self.create_publisher(Odometry, self.robot.getName() + '/odom', 10)
         self.scan_publisher = self.create_publisher(LaserScan, self.robot.getName() + '/scan', 10)
-        self.clock_publisher = self.create_publisher(Clock, self.robot.getName() + '/clock', 10)
+        self.clock_publisher = self.create_publisher(Clock, '/clock', 10)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
         # Subscriber for Nav2 velocity commands
@@ -123,20 +123,18 @@ class EPuckController(Node):
 
     def publish_clock(self, clock):
         """Publish simulation time to /clock."""
-        clock_msg = Clock()
-        clock_msg.clock = clock
-        self.clock_publisher.publish(clock_msg)
+        if(self.robot.getName() == 'robot0'):
+            clock_msg = Clock()
+            clock_msg.clock = clock
+            self.clock_publisher.publish(clock_msg)
+        else:
+            pass
 
     def set_speed(self, left, right):
         """Set motor velocities."""
         self.left_motor.setVelocity(left)
         self.right_motor.setVelocity(right)
 
-    def publish_clock(self, clock):
-        """Publish simulation time to /clock."""
-        clock_msg = Clock()
-        clock_msg.clock = clock
-        self.clock_publisher.publish(clock_msg)
 
     def publish_scan(self, clock):
         """Publish LiDAR scan data."""

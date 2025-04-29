@@ -79,7 +79,7 @@ def generate_launch_description():
             )
     
     ld.add_action(TimerAction(
-        period=5.0 + num_robots,
+        period=5.0,
         actions=[
             LogInfo(msg="Launching SLAM Toolbox..."),
             slam_toolbox_bringup
@@ -113,12 +113,10 @@ def generate_launch_description():
 
             # Nav2 bringup
     nav2_bringup = GroupAction([
-        PushRosNamespace(namespace),
+        #PushRosNamespace(namespace),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(nav2_launch_file),
             launch_arguments={
-                'namespace': namespace,
-                'use_namespace': 'True',
                 'params_file': config_path,
                 'use_sim_time': 'True',
                 'autostart': 'True',
@@ -130,7 +128,7 @@ def generate_launch_description():
     ld.add_action(TimerAction(
         period=10.0,
         actions=[
-            LogInfo(msg=f"Launching Nav2 for {namespace} with config: {config_path}"),
+            LogInfo(msg=f"Launching Nav2 for {num_robots} robots with config: {config_path}"),
             nav2_bringup
         ]
     ))

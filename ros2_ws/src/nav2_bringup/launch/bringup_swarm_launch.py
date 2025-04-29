@@ -22,6 +22,8 @@ from launch.actions import (
     GroupAction,
     IncludeLaunchDescription,
     SetEnvironmentVariable,
+     TimerAction,
+     LogInfo
 )
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -30,6 +32,8 @@ from launch_ros.actions import Node
 from launch_ros.actions import PushROSNamespace
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import ReplaceString, RewrittenYaml
+import yaml
+
 
 
 def generate_launch_description():
@@ -39,16 +43,11 @@ def generate_launch_description():
 
     # Create the launch configuration variables
     namespace = LaunchConfiguration('namespace')
-    use_namespace = LaunchConfiguration('use_namespace')
-    slam = LaunchConfiguration('slam')
-    map_yaml_file = LaunchConfiguration('map')
     use_sim_time = LaunchConfiguration('use_sim_time')
     params_file = LaunchConfiguration('params_file')
     autostart = LaunchConfiguration('autostart')
     use_composition = LaunchConfiguration('use_composition')
-    use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
-    use_localization = LaunchConfiguration('use_localization')
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
     # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
@@ -71,24 +70,6 @@ def generate_launch_description():
         'namespace', default_value='', description='Top-level namespace'
     )
 
-    declare_use_namespace_cmd = DeclareLaunchArgument(
-        'use_namespace',
-        default_value='false',
-        description='Whether to apply a namespace to the navigation stack',
-    )
-
-    declare_slam_cmd = DeclareLaunchArgument(
-        'slam', default_value='False', description='Whether run a SLAM'
-    )
-
-    declare_map_yaml_cmd = DeclareLaunchArgument(
-        'map', default_value='', description='Full path to map yaml file to load'
-    )
-
-    declare_use_localization_cmd = DeclareLaunchArgument(
-        'use_localization', default_value='True',
-        description='Whether to enable localization or not'
-    )
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time',
@@ -114,11 +95,6 @@ def generate_launch_description():
         description='Whether to use composed bringup',
     )
 
-    declare_use_respawn_cmd = DeclareLaunchArgument(
-        'use_respawn',
-        default_value='False',
-        description='Whether to respawn if a node crashes. Applied when composition is disabled.',
-    )
 
     declare_log_level_cmd = DeclareLaunchArgument(
         'log_level', default_value='info', description='log level'
@@ -129,15 +105,14 @@ def generate_launch_description():
     for i in range(2):
         namespace = f'robot{i}'
 
-        params_file = ReplaceString(
+        temp_paramsfile = ReplaceString(
             source_file=params_file,
             replacements={'<robot_namespace>': ('/', namespace), '<robot_frame_namespace>': ('', namespace)},
-            condition=IfCondition(use_namespace),
         )
 
         configured_params = ParameterFile(
             RewrittenYaml(
-                source_file=params_file,
+                source_file=temp_paramsfile,
                 root_key=namespace,
                 param_rewrites={},
                 convert_types=True,
@@ -145,10 +120,10 @@ def generate_launch_description():
             allow_substs=True,
         )
 
-    # Specify the actions
+        # Specify the actions
         group = GroupAction(
             [
-                PushROSNamespace(condition=IfCondition(use_namespace), namespace=namespace),
+                PushROSNamespace(namespace),
                 Node(
                     condition=IfCondition(use_composition),
                     name='nav2_container',
@@ -167,14 +142,14 @@ def generate_launch_description():
                         'namespace': namespace,
                         'use_sim_time': use_sim_time,
                         'autostart': autostart,
-                        'params_file': configured_params,
+                        'params_file': temp_paramsfile,
                         'use_composition': use_composition,
-                        'use_respawn': use_respawn,
-                        'container_name': 'nav2_container',
+                        'container_name':'nav2_container',
                     }.items(),
                 ),
             ]
         )
+
         nav_instances_cmds.append(group)
 
     # Create the launch description and populate
@@ -185,16 +160,11 @@ def generate_launch_description():
 
     # Declare the launch options
     ld.add_action(declare_namespace_cmd)
-    ld.add_action(declare_use_namespace_cmd)
-    ld.add_action(declare_slam_cmd)
-    ld.add_action(declare_map_yaml_cmd)
     ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_params_file_cmd)
     ld.add_action(declare_autostart_cmd)
     ld.add_action(declare_use_composition_cmd)
-    ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
-    ld.add_action(declare_use_localization_cmd)
 
     # Add the actions to launch all of the navigation nodes
     for simulation_instance_cmd in nav_instances_cmds:
