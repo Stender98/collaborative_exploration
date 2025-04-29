@@ -111,7 +111,7 @@ sleep 2
 #sleep 5
 
 echo "Launching ROS 2 system with epuck_nav2_launch.py..."
-$TERMINAL --tab --title="ROS 2 System" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && ros2 launch epuck_nav2_pkg epuck_nav2_launch.py; exec bash" &
+$TERMINAL --tab --title="ROS 2 System" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && ros2 launch epuck_nav2_pkg epuck_nav2_swarm_launch.py; exec bash" &
 
 # Step 5: Launch RViz2 with custom configuration
 #RVIZ_CONFIG="$REPO_DIR/ros2_ws/src/epuck_nav2_pkg/config/nav2_rviz_config.rviz"
