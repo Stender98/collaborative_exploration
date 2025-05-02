@@ -92,33 +92,8 @@ $TERMINAL --tab --title="Webots" -- bash -c "$WEBOTS_CMD $WORLD_PATH; exec bash"
 # Give Webots a moment to start
 sleep 2
 
-# Step 2: Launch Webots controllers for each robot
-#for ((i=0; i<NUM_ROBOTS; i++)); do
-#    ROBOT_ID="robot$i"
-#    echo "Launching controller for $ROBOT_ID..."
-#    $TERMINAL --tab --title="Controller $ROBOT_ID" -- bash -c \
-#       "source $ROS_SETUP && source $WORKSPACE_SETUP && \
-#         $WEBOTS_CONTROLLER --robot-name=$ROBOT_ID $CONTROLLER_PATH --robot-id=$ROBOT_ID; exec bash" &
-#    sleep 1  # Stagger controller launches
-#done
-
-# Step 3: Launch SLAM Toolbox for multi-robot map merging
-#echo "Launching SLAM Toolbox (online_async_multirobot_launch.py)..."
-#$TERMINAL --tab --title="SLAM Toolbox" -- bash -c \
-#    "source $ROS_SETUP && source $WORKSPACE_SETUP && \
-#     ros2 launch slam_toolbox online_async_multirobot_launch.py; exec bash" &
-
-# Give SLAM Toolbox time to initialize
-#sleep 5
-
 echo "Launching ROS 2 system with epuck_nav2_launch.py..."
 $TERMINAL --tab --title="ROS 2 System" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && ros2 launch epuck_nav2_pkg epuck_nav2_swarm_launch.py; exec bash" &
 
-# Step 5: Launch RViz2 with custom configuration
-#RVIZ_CONFIG="$REPO_DIR/ros2_ws/src/epuck_nav2_pkg/config/nav2_rviz_config.rviz"
-#echo "Launching RViz2 with config: $RVIZ_CONFIG..."
-#$TERMINAL --tab --title="RViz2" -- bash -c \
-#    "source $ROS_SETUP && source $WORKSPACE_SETUP && \
-#     ros2 run rviz2 rviz2 -d $RVIZ_CONFIG; exec bash" &
 
 echo "All components launched! Check the terminal tabs for output."
