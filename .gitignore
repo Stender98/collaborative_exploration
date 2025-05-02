@@ -185,3 +185,5 @@ physics/*/*.dylib
 
 install/
 log/
+
+config.cfg
