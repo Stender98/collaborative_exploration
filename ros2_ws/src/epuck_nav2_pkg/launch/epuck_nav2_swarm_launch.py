@@ -3,15 +3,12 @@ from launch.actions import (
     ExecuteProcess,
     IncludeLaunchDescription,
     TimerAction,
-    DeclareLaunchArgument,
     LogInfo
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 import os
-from launch_ros.actions import PushRosNamespace
 from launch.actions import GroupAction
-from nav2_common.launch import ReplaceString
 import yaml
 import tempfile
 
@@ -38,7 +35,6 @@ def generate_launch_description():
     # Assert paths to help with debugging
     assert os.path.exists(controller_path), f"Missing controller script: {controller_path}"
     assert os.path.exists(config_dir), f"Missing config directory: {config_dir}"
-    #assert os.path.exists(rviz_config_path), f"Missing RViz config: {rviz_config_path}"
     assert os.path.exists(nav2_launch_file), f"Missing Nav2 launch file: {nav2_launch_file}"
 
     ld = LaunchDescription()
@@ -61,9 +57,6 @@ def generate_launch_description():
         'base_frames': base_frames,
         'scan_topics': scan_topics
     })
-
-    # Debug: Print the config
-    print("SLAM Toolbox Config:", yaml.dump(slam_toolbox_config))
 
     # Write the modified config to a temporary file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as temp_file:
@@ -91,15 +84,6 @@ def generate_launch_description():
 
     # Launch loop
     for namespace in namespaces:
-
-        # Dynamically namespace the parameter file
-        '''namespaced_params = ReplaceString(
-            source_file=config_path,
-            replacements={'/namespace': f'/{namespace}',
-                          '/framenamespace': f'{namespace}',
-                          }  
-        )'''
-        
         # EPuck Webots controller
         controller_launch = ExecuteProcess(
             cmd=[webots_controller, f'--robot-name={namespace}', controller_path],
@@ -114,9 +98,8 @@ def generate_launch_description():
 
     ld.add_action(LogInfo(msg=f"Attempting to include Nav2 launch file: {nav2_launch_file}"))
 
-            # Nav2 bringup
+    # Nav2 bringup
     nav2_bringup = GroupAction([
-        #PushRosNamespace(namespace),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(nav2_launch_file),
             launch_arguments={
