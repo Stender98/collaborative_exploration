@@ -39,7 +39,7 @@ case $USER in
 esac
 
 # Define world and controller paths
-WORLD_PATH="$REPO_DIR/worlds/SLAM.wbt"
+WORLD_PATH="$REPO_DIR/worlds/Experiment1.wbt"
 CONTROLLER_PATH="$REPO_DIR/ros2_ws/install/epuck_nav2_pkg/share/epuck_nav2_pkg/scripts/swarm_nav_controller.py"
 
 # Ensure Webots paths exist
