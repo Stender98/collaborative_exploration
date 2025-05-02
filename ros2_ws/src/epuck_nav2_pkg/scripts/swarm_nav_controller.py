@@ -12,7 +12,7 @@ import tf2_ros
 from nav2_msgs.action import NavigateToPose
 from controller import Robot, Keyboard
 import numpy as np
-from frontier import FrontierExploration
+from swarm_frontier import FrontierExploration
 
 # Constants
 MAX_SPEED = 6  # E-puck max velocity is 6.28 rad/s
@@ -28,11 +28,11 @@ ENABLE_DIST = False
 
 class EPuckController(Node):
     def __init__(self):
-        super().__init__('epuck_controller')
+        self.robot = Robot()
+        super().__init__('epuck_controller_' + self.robot.getName())
         self.get_logger().info("Using simulation time")
 
         # Webots setup
-        self.robot = Robot()
         global TIME_STEP
         TIME_STEP = int(self.robot.getBasicTimeStep())
         print("Time step is: ", TIME_STEP)
@@ -74,21 +74,21 @@ class EPuckController(Node):
             )
 
         # ROS 2 publishers and broadcasters
-        self.odom_publisher = self.create_publisher(Odometry, '/odom', 10)
-        self.scan_publisher = self.create_publisher(LaserScan, '/scan', 10)
+        self.odom_publisher = self.create_publisher(Odometry, self.robot.getName() + '/odom', 10)
+        self.scan_publisher = self.create_publisher(LaserScan, self.robot.getName() + '/scan', 10)
         self.clock_publisher = self.create_publisher(Clock, '/clock', 10)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
         # Subscriber for Nav2 velocity commands
         self.latest_cmd_vel = Twist()
         self.last_cmd_vel_time = self.get_clock().now()
-        self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
+        self.create_subscription(Twist, f'/{self.robot.getName()}/cmd_vel', self.cmd_vel_callback, 10)
 
-        # Subscriber for /goal topic (NEW)
-        self.create_subscription(PointStamped, '/goal', self.goal_callback, 10)
+        # Subscriber for namespaced /goal topic
+        self.create_subscription(PointStamped, f'/{self.robot.getName()}/goal', self.goal_callback, 10)
 
-        # Action client for Nav2 (NEW)
-        self.nav2_client = ActionClient(self, NavigateToPose, '/navigate_to_pose')
+        # Action client for Nav2 (namespaced)
+        self.nav2_client = ActionClient(self, NavigateToPose, f'/{self.robot.getName()}/navigate_to_pose')
 
         # Control mode state
         self.use_keyboard = False  # Start with Nav2 by default
@@ -123,20 +123,18 @@ class EPuckController(Node):
 
     def publish_clock(self, clock):
         """Publish simulation time to /clock."""
-        clock_msg = Clock()
-        clock_msg.clock = clock
-        self.clock_publisher.publish(clock_msg)
+        if(self.robot.getName() == 'robot0'):
+            clock_msg = Clock()
+            clock_msg.clock = clock
+            self.clock_publisher.publish(clock_msg)
+        else:
+            pass
 
     def set_speed(self, left, right):
         """Set motor velocities."""
         self.left_motor.setVelocity(left)
         self.right_motor.setVelocity(right)
 
-    def publish_clock(self, clock):
-        """Publish simulation time to /clock."""
-        clock_msg = Clock()
-        clock_msg.clock = clock
-        self.clock_publisher.publish(clock_msg)
 
     def publish_scan(self, clock):
         """Publish LiDAR scan data."""
@@ -148,7 +146,7 @@ class EPuckController(Node):
 
         msg = LaserScan()
         msg.header.stamp = clock
-        msg.header.frame_id = "laser"
+        msg.header.frame_id = self.robot.getName() + "/laser"
         msg.angle_min = -np.pi
         msg.angle_max = np.pi
         msg.angle_increment = np.pi * 2 / len(ranges)
@@ -198,8 +196,8 @@ class EPuckController(Node):
         # Odometry message
         odom_msg = Odometry()
         odom_msg.header.stamp = clock
-        odom_msg.header.frame_id = "odom"
-        odom_msg.child_frame_id = "base_footprint"
+        odom_msg.header.frame_id = self.robot.getName() + "/odom"
+        odom_msg.child_frame_id = self.robot.getName() + "/base_footprint"
         odom_msg.pose.pose.position.x = self.x if not np.isnan(self.x) else 0.0
         odom_msg.pose.pose.position.y = self.y if not np.isnan(self.y) else 0.0
         odom_msg.pose.pose.position.z = 0.0
@@ -218,8 +216,8 @@ class EPuckController(Node):
         # TF: odom -> base_footprint
         transform = TransformStamped()
         transform.header.stamp = clock
-        transform.header.frame_id = "odom"
-        transform.child_frame_id = "base_footprint"
+        transform.header.frame_id = self.robot.getName() + "/odom"
+        transform.child_frame_id = self.robot.getName() + "/base_footprint"
         transform.transform.translation.x = self.x if not np.isnan(self.x) else 0.0
         transform.transform.translation.y = self.y if not np.isnan(self.y) else 0.0
         transform.transform.translation.z = 0.0
@@ -229,16 +227,16 @@ class EPuckController(Node):
         # TF: base_footprint -> base_link
         base_link_tf = TransformStamped()
         base_link_tf.header.stamp = clock
-        base_link_tf.header.frame_id = "base_footprint"
-        base_link_tf.child_frame_id = "base_link"
+        base_link_tf.header.frame_id = self.robot.getName() + "/base_footprint"
+        base_link_tf.child_frame_id = self.robot.getName() + "/base_link"
         base_link_tf.transform.rotation.w = 1.0
         self.tf_broadcaster.sendTransform(base_link_tf)
 
         # TF: base_link -> laser
         laser_tf = TransformStamped()
         laser_tf.header.stamp = clock
-        laser_tf.header.frame_id = "base_link"
-        laser_tf.child_frame_id = "laser"
+        laser_tf.header.frame_id = self.robot.getName() + "/base_link"
+        laser_tf.child_frame_id = self.robot.getName() + "/laser"
         laser_tf.transform.translation.z = 0.05
         laser_tf.transform.rotation.w = 1.0
         self.tf_broadcaster.sendTransform(laser_tf)
@@ -248,14 +246,14 @@ class EPuckController(Node):
         self.get_logger().info("Controller started. Arrow keys override Nav2; Nav2 resumes when keys are idle.")
         executor = MultiThreadedExecutor()
         executor.add_node(self)
-        frontier_node = FrontierExploration()
+        frontier_node = FrontierExploration(self.robot.getName())
         executor.add_node(frontier_node)
 
         # Initial TF and clock publish
         sim_time = self.robot.getTime()
         self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
         clock_now = self.get_clock().now().to_msg()
-        for _ in range(20):  # Publish early to ensure Nav2 sees TF and clock
+        for _ in range(200):  # Publish early to ensure Nav2 sees TF and clock
             self.publish_odom_and_tf(clock_now)
             self.publish_clock(clock_now)
             executor.spin_once(timeout_sec=0.01)

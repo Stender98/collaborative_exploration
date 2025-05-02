@@ -3,11 +3,14 @@ slam_toolbox:
         # General
         mode: 'mapping' # "mapping" for SLAM, "localization" for AMCL
         use_sim_time: True
-        transform_publish_period: 0.02 # 50 Hz
-        map_frame: 'map'
-        odom_frame: 'odom'
-        base_frame: 'base_footprint' # Matches controller
+        transform_publish_period: 0.1 # 10 Hz
+        map_frame: map
+        odom_frames: odomframes
+        base_frames: baseframes
+        scan_topics: scantopics
         transform_tolerance: 1.0
+        map: 'mymap'
+        feedback_enabled: True
 
         # Sensor
         max_laser_range: 3.5 # LDS-01 max range
@@ -32,7 +35,6 @@ slam_toolbox:
 
         # Map
         map_update_interval: 1.0 # Update map every 1s
-        map_file_name: 'epuck_map'
         map_start_at_dock: False
         resolution: 0.05
         max_occupancy_value: 100

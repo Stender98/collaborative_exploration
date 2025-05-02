@@ -26,12 +26,14 @@ def generate_launch_description():
     rviz_config_path = os.path.join(config_dir, 'nav2_rviz_config.rviz')
     config_path = os.path.join(config_dir, f'nav2_params_swarm.yaml')
     slam_toolbox_config_path = os.path.join(config_dir, 'slam_toolbox_params.yaml')
+    bringup_dir = get_package_share_directory('nav2_bringup')
+    launch_dir = os.path.join(bringup_dir, 'launch')
 
     # Webots controller path
     webots_controller = '/usr/local/webots/webots-controller' if os.getenv('USER') == 'markus' else '/snap/webots/27/usr/share/webots/webots-controller'
 
     # Nav2 launch file path
-    nav2_launch_file = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_my_launch.py')
+    nav2_launch_file = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_swarm_launch.py')
 
     # Assert paths to help with debugging
     assert os.path.exists(controller_path), f"Missing controller script: {controller_path}"
@@ -39,15 +41,7 @@ def generate_launch_description():
     #assert os.path.exists(rviz_config_path), f"Missing RViz config: {rviz_config_path}"
     assert os.path.exists(nav2_launch_file), f"Missing Nav2 launch file: {nav2_launch_file}"
 
-    # Declare launch arguments
-    num_robots_arg = DeclareLaunchArgument(
-        'num_robots',
-        default_value='2',
-        description='Number of robots to launch'
-    )
-
     ld = LaunchDescription()
-    ld.add_action(num_robots_arg)
 
     # Set number of robots statically for now
     num_robots = 2
@@ -68,17 +62,13 @@ def generate_launch_description():
         'scan_topics': scan_topics
     })
 
+    # Debug: Print the config
+    print("SLAM Toolbox Config:", yaml.dump(slam_toolbox_config))
+
     # Write the modified config to a temporary file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as temp_file:
         yaml.dump(slam_toolbox_config, temp_file)
         temp_slam_toolbox_config_path = temp_file.name
-
-    bringup_dir = get_package_share_directory('nav2_bringup')
-    launch_dir = os.path.join(bringup_dir, 'launch')
-
-
-    for i in range(num_robots):
-        namespaces += f'robot{i}'
 
     slam_toolbox_bringup = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -92,7 +82,7 @@ def generate_launch_description():
             )
     
     ld.add_action(TimerAction(
-        period=5.0 + num_robots,
+        period=5.0,
         actions=[
             LogInfo(msg="Launching SLAM Toolbox..."),
             slam_toolbox_bringup
@@ -100,18 +90,16 @@ def generate_launch_description():
     ))
 
     # Launch loop
-    for i in range(num_robots):
-        namespace= f'robot{i}'
-       
+    for namespace in namespaces:
+
         # Dynamically namespace the parameter file
-        namespaced_params = ReplaceString(
+        '''namespaced_params = ReplaceString(
             source_file=config_path,
             replacements={'/namespace': f'/{namespace}',
                           '/framenamespace': f'{namespace}',
                           }  
-        )
+        )'''
         
-
         # EPuck Webots controller
         controller_launch = ExecuteProcess(
             cmd=[webots_controller, f'--robot-name={namespace}', controller_path],
@@ -120,33 +108,33 @@ def generate_launch_description():
             shell=True
         )
 
-        # Nav2 bringup
-        nav2_bringup = GroupAction([
-            PushRosNamespace(namespace),
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(nav2_launch_file),
-                launch_arguments={
-                    'namespace': namespace,
-                    'params_file': namespaced_params,
-                    'use_sim_time': 'True',
-                    'autostart': 'True',
-                }.items()
-            )
-]       )
-
         # Add controller
         ld.add_action(LogInfo(msg=f"Launching EPuck controller for {namespace}"))
         ld.add_action(controller_launch)
 
-        # Staggered Nav2 startup
-        ld.add_action(TimerAction(
-            period=10.0 + i * 1.0,
-            actions=[
-                LogInfo(msg=f"Launching Nav2 for {namespace} with config: {config_path}"),
-                nav2_bringup
-            ]
-        ))
     ld.add_action(LogInfo(msg=f"Attempting to include Nav2 launch file: {nav2_launch_file}"))
+
+            # Nav2 bringup
+    nav2_bringup = GroupAction([
+        #PushRosNamespace(namespace),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(nav2_launch_file),
+            launch_arguments={
+                'params_file': config_path,
+                'use_sim_time': 'True',
+                'autostart': 'True',
+            }.items()
+        )
+    ])
+
+    # Staggered Nav2 startup
+    ld.add_action(TimerAction(
+        period=10.0,
+        actions=[
+            LogInfo(msg=f"Launching Nav2 for {num_robots} robots with config: {config_path}"),
+            nav2_bringup
+        ]
+    ))
 
     # RViz launch
     rviz_launch = ExecuteProcess(
