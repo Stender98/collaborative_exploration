@@ -132,6 +132,9 @@ dmypy.json
 cache/
 tmp/
 build/
+ros2_ws/install/
+ros2_ws/build/
+ros2_ws/logs/
 
 # Webots user-specific project files
 *.wbproj
