@@ -43,9 +43,11 @@ WORLD_PATH="$REPO_DIR/worlds/SLAM.wbt"
 CONTROLLER_PATH="$REPO_DIR/ros2_ws/install/epuck_nav2_pkg/share/epuck_nav2_pkg/scripts/swarm_nav_controller.py"
 
 # Ensure Webots paths exist
-if [ ! -f "$WEBOTS_CMD" ]; then
-    echo "Error: Webots executable not found at $WEBOTS_CMD."
-    exit 1
+if [ "$USER" != "stender" ]; then
+    if [ ! -f "$WEBOTS_CMD" ]; then
+        echo "Error: Webots executable not found at $WEBOTS_CMD."
+        exit 1
+    fi
 fi
 if [ ! -f "$WEBOTS_CONTROLLER" ]; then
     echo "Error: Webots controller executable not found at $WEBOTS_CONTROLLER."

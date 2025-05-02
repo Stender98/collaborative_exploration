@@ -2,11 +2,14 @@ import rclpy
 from rclpy.node import Node
 import numpy as np
 from nav_msgs.msg import OccupancyGrid
-from geometry_msgs.msg import PoseStamped, PointStamped
+from geometry_msgs.msg import PoseStamped, PointStamped, PoseWithCovarianceStamped
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 from action_msgs.msg import GoalStatus
 import cv2
+import tf2_ros
+from tf2_ros import TransformException
+import math
 
 class FrontierExploration(Node):
     def __init__(self, robot_name: str):
@@ -23,8 +26,13 @@ class FrontierExploration(Node):
         self.cooldown_duration = 2.0  # Seconds to wait before selecting new frontier
         self.min_map_coverage = 0.01  # Reduced to 1% to avoid coverage issues
         self.frontier_check_interval = 1.0  # Seconds between frontier checks
-        self.min_free_neighbors = 1  # Reduced to make frontier detection less strict
-        self.min_frontier_distance = 0.2  # Minimum distance between frontiers (meters)
+        self.min_free_neighbors = 1  # Minimum free cells needed for valid frontier
+        self.min_frontier_distance = 0.5  # Minimum distance between frontiers (meters)
+        self.frontier_reserve_timeout = 10.0  # How long to consider a frontier reserved
+
+        # TF Buffer and Listener for robot pose lookups
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
         # Subscriber to the map topic (shared)
         self.subscription = self.create_subscription(
@@ -43,14 +51,14 @@ class FrontierExploration(Node):
 
         # Publisher for assigned frontiers (shared topic, using PointStamped)
         self.frontier_publisher = self.create_publisher(
-            PointStamped,  # Changed from Point to PointStamped
+            PointStamped,
             '/assigned_frontiers',
             10
         )
 
-        # Subscriber for assigned frontiers from other robots (using PointStamped)
+        # Subscriber for assigned frontiers from other robots
         self.frontier_subscription = self.create_subscription(
-            PointStamped,  # Changed from Point to PointStamped
+            PointStamped,
             '/assigned_frontiers',
             self.frontier_callback,
             10
@@ -65,18 +73,45 @@ class FrontierExploration(Node):
             self.check_current_goal
         )
 
+    def get_robot_position(self):
+        """Get the robot's current position in map coordinates."""
+        # Using TF to find pose.
+        try:
+            transform = self.tf_buffer.lookup_transform(
+                'map',
+                f'{self.robot_name}/base_footprint',
+                rclpy.time.Time()
+            )
+            return (transform.transform.translation.x, transform.transform.translation.y)
+        except TransformException as ex:
+            self.get_logger().warning(f'Could not get robot position: {ex}')
+            # If we can't get the position, return the map origin as a fallback
+            if self.map_data is not None:
+                origin = self.map_data.info.origin
+                width = self.map_data.info.width
+                height = self.map_data.info.height
+                resolution = self.map_data.info.resolution
+                # Return the center of the map
+                return (
+                    origin.position.x + width * resolution / 2,
+                    origin.position.y + height * resolution / 2
+                )
+            return (0.0, 0.0)
+
     def frontier_callback(self, msg):
         """Store frontiers assigned by other robots."""
         robot_id = msg.header.frame_id if msg.header.frame_id else 'unknown'
         if robot_id != self.robot_name:
-            # Use msg.point for coordinates
-            self.other_frontiers[robot_id] = (msg.point.x, msg.point.y, msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9)
-            # Clean up old frontiers (older than 30 seconds)
             current_time = self.get_clock().now().nanoseconds / 1e9
+            # Use msg.point for coordinates
+            self.other_frontiers[robot_id] = (msg.point.x, msg.point.y, current_time)
+            self.get_logger().debug(f'Received frontier from {robot_id} at ({msg.point.x:.2f}, {msg.point.y:.2f})')
+            
+            # Clean up old frontiers (older than frontier_reserve_timeout seconds)
             self.other_frontiers = {
                 rid: coords
                 for rid, coords in self.other_frontiers.items()
-                if current_time - coords[2] < 30.0
+                if current_time - coords[2] < self.frontier_reserve_timeout
             }
 
     def publish_assigned_frontier(self, goal_coords):
@@ -87,8 +122,6 @@ class FrontierExploration(Node):
         frontier_msg.point.x = goal_coords[0]
         frontier_msg.point.y = goal_coords[1]
         frontier_msg.point.z = 0.0
-        self.frontier_publisher.publish(frontier_msg)
-
         self.frontier_publisher.publish(frontier_msg)
 
     def map_callback(self, msg):
@@ -110,15 +143,15 @@ class FrontierExploration(Node):
         known_cells = np.sum((map_array == 0) | (map_array == 100))
         total_cells = map_array.size
         coverage = known_cells / total_cells if total_cells > 0 else 0.0
-        self.get_logger().info(f'Map coverage: {coverage:.2%}')
+        self.get_logger().debug(f'Map coverage: {coverage:.2%}')
         if coverage < self.min_map_coverage:
-            self.get_logger().info(f'Map coverage too low: {coverage:.2%} < {self.min_map_coverage:.2%}')
+            self.get_logger().debug(f'Map coverage too low: {coverage:.2%} < {self.min_map_coverage:.2%}')
             return False
 
         # Check cooldown period
         if self.last_goal_time is not None:
             elapsed = (self.get_clock().now() - self.last_goal_time).nanoseconds / 1e9
-            self.get_logger().info(f'Cooldown elapsed: {elapsed:.2f}s')
+            self.get_logger().debug(f'Cooldown elapsed: {elapsed:.2f}s')
             if elapsed < self.cooldown_duration:
                 return False
 
@@ -132,7 +165,7 @@ class FrontierExploration(Node):
         origin = self.map_data.info.origin
 
         map_array = np.array(self.map_data.data, dtype=np.int8).reshape((height, width))
-        self.get_logger().info(f'Map stats: {np.sum(map_array == -1)} unknown, {np.sum(map_array == 0)} free, {np.sum(map_array == 100)} occupied')
+        self.get_logger().debug(f'Map stats: {np.sum(map_array == -1)} unknown, {np.sum(map_array == 0)} free, {np.sum(map_array == 100)} occupied')
 
         # Frontier detection: unknown (-1) adjacent to known free space (0)
         kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.uint8)
@@ -147,11 +180,14 @@ class FrontierExploration(Node):
             self.get_logger().info('No frontiers found')
             return None
 
+        # Get current robot position
+        robot_pos = np.array(self.get_robot_position())
+        self.get_logger().info(f'Robot position: ({robot_pos[0]:.2f}, {robot_pos[1]:.2f})')
+
         # Filter frontiers
         valid_coords = []
-        min_distance = 0.1  # Minimum distance from map center (meters)
-        center_x = width // 2
-        center_y = height // 2
+        min_distance_from_origin = 0.1  # Minimum distance from map center (meters)
+        
         for y, x in frontier_coords:
             # Skip frontiers near obstacles
             region = map_array[max(0, y-1):min(height, y+2), max(0, x-1):min(width, x+2)]
@@ -167,41 +203,39 @@ class FrontierExploration(Node):
             # Convert to world coordinates
             world_x = origin.position.x + x * resolution
             world_y = origin.position.y + y * resolution
-
-            # Skip if too close to map center
-            dist = np.hypot(world_x - (origin.position.x + center_x * resolution),
-                            world_y - (origin.position.y + center_y * resolution))
-            if dist < min_distance:
-                continue
+            world_pos = np.array([world_x, world_y])
 
             # Skip if same as last goal
-            if self.last_goal_coords and np.hypot(world_x - self.last_goal_coords[0],
-                                                 world_y - self.last_goal_coords[1]) < 0.05:
+            if self.last_goal_coords and np.linalg.norm(world_pos - np.array(self.last_goal_coords)) < 0.05:
                 continue
 
             # Skip if too close to other robots' frontiers
             too_close = False
-            for _, (fx, fy, _) in self.other_frontiers.items():
-                if np.hypot(world_x - fx, world_y - fy) < self.min_frontier_distance:
+            for other_robot, (fx, fy, _) in self.other_frontiers.items():
+                if np.linalg.norm(world_pos - np.array([fx, fy])) < self.min_frontier_distance:
                     too_close = True
+                    self.get_logger().debug(f'Skip frontier at ({world_x:.2f}, {world_y:.2f}): too close to {other_robot}')
                     break
             if too_close:
                 continue
 
-            valid_coords.append((y, x, world_x, world_y, free_count))
+            # Calculate distance from robot position
+            dist_to_robot = np.linalg.norm(world_pos - robot_pos)
+            
+            valid_coords.append((y, x, world_x, world_y, free_count, dist_to_robot))
 
         self.get_logger().info(f'Found {len(valid_coords)} valid frontiers after filtering')
         if not valid_coords:
-            self.get_logger().info('No valid frontiers with sufficient free space found')
+            self.get_logger().info('No valid frontiers found')
             return None
 
-        # Sort by number of free space neighbors (descending) and then by distance to center
-        valid_coords.sort(key=lambda c: (-c[4],  # Prioritize free space neighbors
-                                        (c[2] - (origin.position.x + center_x * resolution))**2 +
-                                        (c[3] - (origin.position.y + center_y * resolution))**2))
-
-        # Select the frontier with the most free space neighbors
-        _, _, world_x, world_y, _ = valid_coords[0]
+        # Sort by distance to robot (ascending) as primary criteria
+        # Use free space neighbors (descending) as secondary criteria
+        valid_coords.sort(key=lambda c: (c[5], -c[4]))
+        
+        # Select the closest frontier with good exploration potential
+        _, _, world_x, world_y, _, dist = valid_coords[0]
+        self.get_logger().info(f'Selected frontier at ({world_x:.2f}, {world_y:.2f}), distance: {dist:.2f}m')
         return (world_x, world_y)
 
     def is_goal_still_frontier(self, goal_coords):
