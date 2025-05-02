@@ -29,8 +29,7 @@ case $USER in
         WEBOTS_CONTROLLER="$WEBOTS_HOME/webots-controller"
         ;;
     "stender")
-        WEBOTS_HOME="/snap/webots/27/usr/share/webots"
-        WEBOTS_CMD="$WEBOTS_HOME/webots"
+        WEBOTS_CMD="webots"
         WEBOTS_CONTROLLER="$WEBOTS_HOME/webots-controller"
         ;;
     *)
