@@ -4,12 +4,13 @@ slam_toolbox:
         mode: 'mapping' # "mapping" for SLAM, "localization" for AMCL
         use_sim_time: True
         transform_publish_period: 0.1 # 10 Hz
-        map_frame: 'map'
-        odom_frames: ['namespace']
-        base_frames: ['namespace']
-        scan_topics: ['namespace']
+        map_frame: map
+        odom_frames: odomframes
+        base_frames: baseframes
+        scan_topics: scantopics
         transform_tolerance: 1.0
         map: 'mymap'
+        feedback_enabled: True
 
         # Sensor
         max_laser_range: 3.5 # LDS-01 max range

@@ -62,6 +62,9 @@ def generate_launch_description():
         'scan_topics': scan_topics
     })
 
+    # Debug: Print the config
+    print("SLAM Toolbox Config:", yaml.dump(slam_toolbox_config))
+
     # Write the modified config to a temporary file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as temp_file:
         yaml.dump(slam_toolbox_config, temp_file)
