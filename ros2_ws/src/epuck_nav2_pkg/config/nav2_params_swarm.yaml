@@ -244,6 +244,7 @@ global_costmap:
             publish_frequency: 1.0
             transform_tolerance: 1.0
             global_frame: map
+            map_topic: /map
             robot_base_frame: <robot_frame_namespace>/base_footprint
             robot_radius: 0.0355 # E-puck radius (keep as is)
             resolution: 0.01
