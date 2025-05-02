@@ -125,9 +125,9 @@ def generate_launch_description():
         actions=[
             # Remapping required to have a slam session subscribe & publish in optional namespaces
             SetRemap(src='/scan', dst='scan'),
-            SetRemap(src='/tf', dst='tf'),
-            SetRemap(src='/tf_static', dst='tf_static'),
-            SetRemap(src='/map', dst='map'),
+            SetRemap(src='/tf', dst='/tf'),
+            SetRemap(src='/tf_static', dst='/tf_static'),
+            SetRemap(src='/map', dst='/map'),
 
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(slam_launch_file),
