@@ -101,16 +101,9 @@ controller_server:
             yaw_goal_tolerance: 0.1
         FollowPath:
             plugin: 'nav2_mppi_controller::MPPIController'
-            time_steps: 56
+            time_steps: 32
             model_dt: 0.1
-            batch_size: 2000
-            ax_max: 2.0 # Adjusted for e-puck (smaller robot)
-            ax_min: -2.0
-            ay_max: 0.0 # Differential drive, no lateral accel
-            az_max: 12.0 # Adjusted for quick rotation
-            vx_std: 0.2
-            vy_std: 0.2
-            wz_std: 0.4
+            batch_size: 500
             vx_max: 0.25 # E-puck max forward speed
             vx_min: -0.25 # E-puck max backward speed
             vy_max: 0.0 # No lateral motion
@@ -197,7 +190,7 @@ local_costmap:
             rolling_window: true
             width: 3
             height: 3
-            resolution: 0.01
+            resolution: 0.05
             robot_radius: 0.0355 # E-puck radius (keep as is)
             plugins: ['voxel_layer', 'inflation_layer', 'obstacle_layer']
             inflation_layer:
@@ -247,7 +240,7 @@ global_costmap:
             map_topic: /map
             robot_base_frame: <robot_frame_namespace>/base_footprint
             robot_radius: 0.0355 # E-puck radius (keep as is)
-            resolution: 0.01
+            resolution: 0.05
             track_unknown_space: true
             plugins: ['static_layer', 'obstacle_layer', 'inflation_layer']
             obstacle_layer:
