@@ -73,6 +73,7 @@ def generate_launch_description():
                 'params_file': config_path,
                 'use_sim_time': 'True',
                 'autostart': 'True',
+                'robot_count': LaunchConfiguration('robot_count')
             }.items()
         )
     ])
@@ -113,6 +114,7 @@ def launch_robots(context, *args, **kwargs):
 
     # Generate namespaces
     namespaces = [f'robot{i}' for i in range(num_robots)]
+    print("Namespaces hihi: ", namespaces)
 
     actions = []
 
