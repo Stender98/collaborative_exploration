@@ -44,7 +44,18 @@ else
     exit 1
 fi
 
-# --- Robot count selection ---
+if [ "$MODE" = "centralised" ]; then
+    echo "Centralised mode selected."
+    LAUNCH="epuck_nav2_swarm_launch.py"
+elif [ "$MODE" = "decentralised" ]; then
+    echo "Decentralised mode selected."
+    LAUNCH="epuck_decentralised_swarm_launch.py"
+else
+    echo "Error: Invalid mode. Exiting."
+    exit 1
+fi
+
+
 echo ""
 echo "Select number of robots: 2, 3, 5, 7, or 10"
 read -p "Enter number of robots: " NUM_ROBOTS
@@ -121,16 +132,7 @@ if [ ! -f "$WORKSPACE_SETUP" ]; then
     fi
 fi
 
-if [ "$MODE" = "centralised" ]; then
-    echo "Centralised mode selected."
-    LAUNCH="epuck_nav2_swarm_launch.py"
-elif [ "$MODE" = "decentralised" ]; then
-    echo "Decentralised mode selected."
-    LAUNCH="epuck_decentralised_swarm_launch.py"
-else
-    echo "Error: Invalid mode. Exiting."
-    exit 1
-fi
+
 
 # Terminal command
 TERMINAL="gnome-terminal"
