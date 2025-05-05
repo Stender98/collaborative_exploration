@@ -1,47 +1,45 @@
-# Running the Simulation ROS2 Native System
-
-## Prerequisites
+# TBD project title
 Ensure you have the following installed and set up:
+- This project has been tested and build on Ubuntu 24.04 LTS (but the software used is also supported on Windows 10 or macOS.) 
 - [Webots](https://cyberbotics.com/)
-- [ROS2](https://docs.ros.org/en/)
-- `slam_toolbox` package for ROS2
-- `rviz2` for visualization
+    - Troubleshooting tip: If you are unable to connect the controllers to Webots, refer to the [Webots documentation](https://cyberbotics.com/doc/guide/running-extern-robot-controllers) for help on running an external controller.
+- [ROS2](https://docs.ros.org/en/) Jazzy and the following packages:
+    - `Navigation2` for autonomous navigation
+    - `rviz2` for visualisation
+    - `SLAM Toolbox` specifically the modified 'jazzy'-branch from [our forked repository](https://github.com/Stender98/slam_toolbox) should available in your ros2_ws/src/slam_toolbox
+- Python3
 
-## Steps to Run the Simulation
-Open four terminal windows and execute the following commands in order:
-
-### 1: Start Webots
+## Guide to run the simulation
+### 1: Build the workspace
+If not already build, source the setup.bash, .sh or .zsh and build the ROS2 workspace.
 ```sh
-webots
+source /opt/ros/jazzy/setup.bash 
+cd ros2_ws
+colcon build
 ```
 
-Open the SLAM world `SLAM.wbt`
+Troubleshooting help can be found in the [ROS2 documentation.](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html)
 
-### 2: Run the Webots Controller
+
+### 2: Setup the run script.
+During your first time running the `run.sh` script you will be prompted to provide the path to your Webots executable and Webots controller executeable. Refer to [Webots documentation](https://cyberbotics.com/doc/guide/running-extern-robot-controllers) for help on running an external controller.
+
+A config.cfg file will hold these paths in the root folder of this repository, where if needed, changes can be applied to these paths. 
+
+An example config.cfg file is the following:
 ```sh
-<path_to_webots>/webots-controller <path_to_your_controller>/epuck_controller.py
+WEBOTS_EXE="/snap/bin/webots"
+WEBOTS_CONTROLLER="/snap/webots/27/usr/share/webots/webots-controller"
 ```
 
-Refer to [Webots documentation](https://cyberbotics.com/doc/guide/running-extern-robot-controllers) for help on running an external controller.
-
-### 3: Launch SLAM Toolbox
 ```sh
-ros2 launch slam_toolbox online_async_launch.py
+./run.sh
 ```
 
-### 4: Start RViz for Visualization
-```sh
-ros2 run rviz2 rviz2
-```
-
-Add by topic /map, /pose, or /scan for (Occupancy grid, estimated pose, LiDAR scans)
+The run script will prompt you to choose between the centralised or decentralised approach and responds to the input `c` or `d`. Following that you select one of the available sizes of swarms presented. The corresponding Webots world will be launched followed by the robot controllers after a short delay.
 
 ## Notes
-- Ensure Webots is properly installed and accessible.
-- Modify paths as needed if your setup differs.
-- SLAM Toolbox is used for real-time mapping.
-- RViz2 is required for visualizing the generated map and robot state.
-- The controller uses packages from Webots that should might not initially be available in your default python environment.
+- The controller uses Python packages and packages from Webots that might not initially be available in your python environment.
 
-For further configuration and troubleshooting, refer to the respective documentation of Webots and ROS2.
+For further configuration and troubleshooting, please refer to the respective documentation of Webots and ROS2.
 
