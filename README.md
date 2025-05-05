@@ -1,5 +1,5 @@
 # TBD project title
-prerequisite software:
+Prerequisite software:
 - This project has been tested and build on Ubuntu 24.04 LTS (but the software used is also supported on Windows 10 or macOS.) 
 - [Webots](https://cyberbotics.com/)
     - Troubleshooting tip: If you are unable to connect the controllers to Webots, refer to the [Webots documentation](https://cyberbotics.com/doc/guide/running-extern-robot-controllers) for help on running an external controller.
