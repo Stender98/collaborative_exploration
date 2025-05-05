@@ -10,7 +10,7 @@ from rosgraph_msgs.msg import Clock
 import tf_transformations
 import tf2_ros
 from nav2_msgs.action import NavigateToPose
-from controller import Robot, Keyboard
+from controller import Robot
 import numpy as np
 from swarm_frontier import FrontierExploration
 
@@ -36,8 +36,6 @@ class EPuckController(Node):
         global TIME_STEP
         TIME_STEP = int(self.robot.getBasicTimeStep())
         print("Time step is: ", TIME_STEP)
-        self.keyboard = Keyboard()
-        self.keyboard.enable(TIME_STEP)
 
         # Robot state
         self.x = 0.0
@@ -88,11 +86,7 @@ class EPuckController(Node):
         self.create_subscription(PointStamped, f'/{self.robot.getName()}/goal', self.goal_callback, 10)
 
         # Action client for Nav2 (namespaced)
-        self.nav2_client = ActionClient(self, NavigateToPose, f'/{self.robot.getName()}/navigate_to_pose')
-
-        # Control mode state
-        self.use_keyboard = False  # Start with Nav2 by default
-        self.last_mode = None  # Track mode changes for logging
+        self.nav2_client = ActionClient(self, NavigateToPose, f'/{self.robot.getName()}/navigate_to_pose') 
 
     def cmd_vel_callback(self, msg):
         """Store the latest Nav2 velocity command and update timestamp."""
@@ -243,7 +237,6 @@ class EPuckController(Node):
 
     def run(self):
         """Main control loop with automatic mode switching."""
-        self.get_logger().info("Controller started. Arrow keys override Nav2; Nav2 resumes when keys are idle.")
         executor = MultiThreadedExecutor()
         executor.add_node(self)
         frontier_node = FrontierExploration(self.robot.getName())
@@ -253,7 +246,7 @@ class EPuckController(Node):
         sim_time = self.robot.getTime()
         self.get_clock().set_ros_time_override(rclpy.time.Time(seconds=sim_time))
         clock_now = self.get_clock().now().to_msg()
-        for _ in range(200):  # Publish early to ensure Nav2 sees TF and clock
+        for _ in range(50):  # Publish early to ensure Nav2 sees TF and clock
             self.publish_odom_and_tf(clock_now)
             self.publish_clock(clock_now)
             executor.spin_once(timeout_sec=0.01)
@@ -271,8 +264,6 @@ class EPuckController(Node):
                     self.publish_scan(clock_now)
                 self.publish_odom_and_tf(clock_now)
 
-                # Handle control mode
-                key = self.keyboard.getKey()
                 left_speed = 0.0
                 right_speed = 0.0
 
@@ -281,36 +272,13 @@ class EPuckController(Node):
                 nav2_active = time_since_cmd_vel < CMD_VEL_TIMEOUT and \
                               (abs(self.latest_cmd_vel.linear.x) > 0.01 or abs(self.latest_cmd_vel.angular.z) > 0.01)
 
-                # Keyboard takes over if a key is pressed
-                if key in [Keyboard.UP, Keyboard.DOWN, Keyboard.LEFT, Keyboard.RIGHT]:
-                    self.use_keyboard = True
-                    if key == Keyboard.UP:
-                        left_speed = MAX_SPEED
-                        right_speed = MAX_SPEED
-                    elif key == Keyboard.DOWN:
-                        left_speed = -MAX_SPEED
-                        right_speed = -MAX_SPEED
-                    elif key == Keyboard.LEFT:
-                        left_speed = -MAX_SPEED * 0.3
-                        right_speed = MAX_SPEED * 0.3
-                    elif key == Keyboard.RIGHT:
-                        left_speed = MAX_SPEED * 0.3
-                        right_speed = -MAX_SPEED * 0.3
-                # Switch to Nav2 if no key is pressed and Nav2 is active
-                elif nav2_active:
-                    self.use_keyboard = False
+                if nav2_active:
                     linear = self.latest_cmd_vel.linear.x
                     angular = self.latest_cmd_vel.angular.z
                     left_speed = (linear - angular * WHEEL_DISTANCE / 2.0) / WHEEL_RADIUS
                     right_speed = (linear + angular * WHEEL_DISTANCE / 2.0) / WHEEL_RADIUS
                     left_speed = max(min(left_speed, MAX_SPEED), -MAX_SPEED)
                     right_speed = max(min(right_speed, MAX_SPEED), -MAX_SPEED)
-
-                # Log mode changes
-                current_mode = "keyboard" if self.use_keyboard else "Nav2"
-                if self.last_mode != current_mode:
-                    self.get_logger().info(f"Switched to {current_mode} control mode.")
-                    self.last_mode = current_mode
 
                 self.set_speed(left_speed, right_speed)
                 executor.spin_once(timeout_sec=TIME_STEP / 1000.0)
