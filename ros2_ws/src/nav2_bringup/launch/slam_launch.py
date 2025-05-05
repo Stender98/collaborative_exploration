@@ -17,13 +17,14 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, LogInfo, ExecuteProcess
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, SetParameter, SetRemap
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import HasNodeParams, RewrittenYaml
+
 
 
 def generate_launch_description():
@@ -35,14 +36,14 @@ def generate_launch_description():
     use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
 
+
     # Variables
     lifecycle_nodes = ['map_saver']
 
     # Getting directories and launch-files
     bringup_dir = get_package_share_directory('nav2_bringup')
     slam_toolbox_dir = get_package_share_directory('slam_toolbox')
-    slam_launch_file = os.path.join(slam_toolbox_dir, 'launch', 'online_async_launch.py')
-    #slam_launch_file = os.path.join(slam_toolbox_dir, 'launch', 'online_async_multirobot_launch.py', 'namespace:=' + namespace)
+    slam_launch_file = os.path.join(slam_toolbox_dir, 'launch', 'online_async_multirobot_launch.py')
 
     # Create our own temporary YAML files that include substitutions
     configured_params = ParameterFile(
@@ -124,9 +125,9 @@ def generate_launch_description():
         actions=[
             # Remapping required to have a slam session subscribe & publish in optional namespaces
             SetRemap(src='/scan', dst='scan'),
-            SetRemap(src='/tf', dst='tf'),
-            SetRemap(src='/tf_static', dst='tf_static'),
-            SetRemap(src='/map', dst='map'),
+            SetRemap(src='/tf', dst='/tf'),
+            SetRemap(src='/tf_static', dst='/tf_static'),
+            SetRemap(src='/map', dst='/map'),
 
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(slam_launch_file),
