@@ -11,7 +11,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.5773502691896257 0.5773502691896257 0.5773502691896257 2.0944
-  position 0.38626148216709133 0.12632522048759967 14.676577360591205
+  position 0.38622650995672747 0.12629024817834716 2.308550840067299
 }
 TexturedBackground {
 }
@@ -21,7 +21,26 @@ RectangleArena {
   floorSize 10 10
 }
 E-puck {
+  translation 0 0.25 0
   name "robot0"
+  controller "<extern>"
+  turretSlot [
+    RobotisLds01 {
+    }
+  ]
+}
+E-puck {
+  translation 0 -0.25 0
+  name "robot1"
+  controller "<extern>"
+  turretSlot [
+    RobotisLds01 {
+    }
+  ]
+}
+E-puck {
+  translation 0.25 0.25 0
+  name "robot2"
   controller "<extern>"
   turretSlot [
     RobotisLds01 {
