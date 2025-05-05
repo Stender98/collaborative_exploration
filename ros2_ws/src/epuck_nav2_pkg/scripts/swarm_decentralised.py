@@ -477,20 +477,20 @@ class EPuckController(Node):
                         if robot_detected and signal_strength > 30:
                             new_state = AVOID_ROBOT
                             last_robot_angle = angle
-                            print(f"State: AVOID_ROBOT (Signal: {signal_strength:.1f}, Angle: {angle:.2f})")
+                            #print(f"State: AVOID_ROBOT (Signal: {signal_strength:.1f}, Angle: {angle:.2f})")
                     
                     # Other state checks, only if not avoiding robot
                     if new_state != AVOID_ROBOT:
                         if self.detect_obstacle():
                             new_state = AVOID_OBSTACLE  
-                            print("State: AVOID_OBSTACLE")
+                            #print("State: AVOID_OBSTACLE")
                         elif wall_side is not None and side_dist < 0.4:
                             # Wall detected, switch to wall following
                             new_state = FOLLOW_WALL
-                            print(f"State: FOLLOW_WALL ({wall_side} wall, dist: {side_dist:.2f})")
+                            #print(f"State: FOLLOW_WALL ({wall_side} wall, dist: {side_dist:.2f})")
                         else:
                             new_state = RANDOM_WALK
-                            print("State: RANDOM_WALK")
+                            #print("State: RANDOM_WALK")
                     
                     if new_state != state:
                         state = new_state

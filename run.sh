@@ -121,6 +121,17 @@ if [ ! -f "$WORKSPACE_SETUP" ]; then
     fi
 fi
 
+if [ "$MODE" = "centralised" ]; then
+    echo "Centralised mode selected."
+    LAUNCH="epuck_nav2_swarm_launch.py"
+elif [ "$MODE" = "decentralised" ]; then
+    echo "Decentralised mode selected."
+    LAUNCH="epuck_decentralised_swarm_launch.py"
+else
+    echo "Error: Invalid mode. Exiting."
+    exit 1
+fi
+
 # Terminal command
 TERMINAL="gnome-terminal"
 
@@ -131,7 +142,6 @@ $TERMINAL --tab --title="Webots" -- bash -c "$WEBOTS_EXE $WORLD_PATH; exec bash"
 # Give Webots a moment to start
 sleep 2
 
-# --- Final output and start ---
 echo ""
 echo "Launching ROS 2 system with..."
 echo "Webots executable path: $WEBOTS_EXE"
@@ -139,7 +149,8 @@ echo "Webots controller path: $WEBOTS_CONTROLLER"
 echo "Mode: $MODE"
 echo "Number of Robots: $NUM_ROBOTS"
 
-$TERMINAL --tab --title="ROS 2 System" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && ros2 launch epuck_nav2_pkg epuck_nav2_swarm_launch.py \
+# Step 2: Launch the ROS 2 system
+$TERMINAL --tab --title="ROS 2 System" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && ros2 launch epuck_nav2_pkg $LAUNCH \
     webots_controller:="$WEBOTS_CONTROLLER" \
     robot_count:="$NUM_ROBOTS"; exec bash"
 
