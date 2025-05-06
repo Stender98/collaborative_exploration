@@ -65,11 +65,11 @@ controller_server:
             vx_min: -0.25 # E-puck max backward speed
             vy_max: 0.0 # No lateral motion
             wz_max: 6.28 # E-puck max rotation speed
-            iteration_count: 1
+            iteration_count: 2
             prune_distance: 1.7
             transform_tolerance: 1.0
             temperature: 0.3
-            gamma: 0.015
+            gamma: 0.02
             motion_model: 'DiffDrive'
             visualize: true
             regenerate_noises: true
@@ -82,7 +82,7 @@ controller_server:
             ConstraintCritic:
                 enabled: true
                 cost_power: 1
-                cost_weight: 4.0
+                cost_weight: 6.0
             GoalCritic:
                 enabled: true
                 cost_power: 1
@@ -101,7 +101,7 @@ controller_server:
             CostCritic:
                 enabled: true
                 cost_power: 1
-                cost_weight: 10.0
+                cost_weight: 12.0
                 critical_cost: 300.0
                 consider_footprint: true
                 collision_cost: 1000000.0
@@ -139,8 +139,8 @@ local_costmap:
     local_costmap:
         ros__parameters:
             use_sim_time: True
-            update_frequency: 5.0
-            publish_frequency: 2.0
+            update_frequency: 10.0
+            publish_frequency: 5.0
             transform_tolerance: 1.0
             global_frame: <robot_frame_namespace>/odom
             robot_base_frame: <robot_frame_namespace>/base_footprint
@@ -152,8 +152,8 @@ local_costmap:
             plugins: ['voxel_layer', 'inflation_layer', 'obstacle_layer']
             inflation_layer:
                 plugin: 'nav2_costmap_2d::InflationLayer'
-                cost_scaling_factor: 50.0 # Increase to make cost drop off faster (less bloating)
-                inflation_radius: 0.1 # Set to 0.1 m (min distance) + 0.0355 m (radius) + a small margin
+                cost_scaling_factor: 20.0 # Increase to make cost drop off faster (less bloating)
+                inflation_radius: 0.25 # Set to 0.1 m (min distance) + 0.0355 m (radius) + a small margin
             obstacle_layer:
                 plugin: 'nav2_costmap_2d::ObstacleLayer'
                 enabled: True
@@ -219,8 +219,8 @@ global_costmap:
                 map_subscribe_transient_local: True
             inflation_layer:
                 plugin: 'nav2_costmap_2d::InflationLayer'
-                cost_scaling_factor: 50.0 # Increase to make cost drop off faster (less bloating)
-                inflation_radius: 0.1 # Set to 0.1 m (min distance) + 0.0355 m (radius) + a small margin
+                cost_scaling_factor: 20.0 # Increase to make cost drop off faster (less bloating)
+                inflation_radius: 0.25 # Set to 0.1 m (min distance) + 0.0355 m (radius) + a small margin
             always_send_full_costmap: True
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.
@@ -332,8 +332,8 @@ collision_monitor:
             type: 'polygon'
             action_type: 'approach'
             footprint_topic: <robot_namespace>/local_costmap/published_footprint
-            time_before_collision: 1.2
-            simulation_time_step: 0.1
+            time_before_collision: 0.8
+            simulation_time_step: 0.05
             min_points: 6
             visualize: False
             enabled: True
