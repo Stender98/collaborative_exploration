@@ -75,8 +75,10 @@ elif [ "$NUM_ROBOTS" -eq 5 ]; then
     WORLD_PATH="$REPO_DIR/worlds/Experiment_5_Robot.wbt"
 elif [ "$NUM_ROBOTS" -eq 8 ]; then
     WORLD_PATH="$REPO_DIR/worlds/Experiment_8_Robot.wbt"
-elif [ "$NUM_ROBOTS" -eq 10 ]; then
-    WORLD_PATH="$REPO_DIR/worlds/Experiment5.wbt"
+elif [ "$NUM_ROBOTS" -eq 13 ]; then
+    WORLD_PATH="$REPO_DIR/worlds/Experiment_13_Robot.wbt"
+elif [ "$NUM_ROBOTS" -eq 21 ]; then
+    WORLD_PATH="$REPO_DIR/worlds/Experiment_21_Robot.wbt"
 else
     echo "Error: Invalid number of robots."
     exit 1
