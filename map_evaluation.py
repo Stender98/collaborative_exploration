@@ -62,10 +62,10 @@ class MapEvaluator:
         
         # Normalize map values: 0=occupied, 100=unknown, 255=free -> 1=occupied, 0.5=unknown, 0=free
         normalized_map = np.ones(data.shape, dtype=np.float32)
-        normalized_map[data == 255] = 0.0  # Free space
-        normalized_map[data == 0] = 1.0    # Occupied
-        normalized_map[(data > 0) & (data < 255)] = 0.5  # Unknown/unexplored
-        
+        normalized_map[data > 250] = 0.0     # Free
+        normalized_map[data < 50] = 1.0      # Occupied
+        normalized_map[(data >= 50) & (data <= 250)] = 0.5  # Unknown
+
         # Load YAML metadata if provided
         metadata = None
         if yaml_file and os.path.exists(yaml_file):
@@ -163,35 +163,6 @@ class MapEvaluator:
         
         return metrics
     
-    def calculate_exploration_coverage(self, slam_map, ground_truth_map, unknown_threshold=0.4):
-        """
-        Calculate how much of the explorable area has been mapped
-        
-        Args:
-            slam_map (ndarray): The SLAM-generated map
-            ground_truth_map (ndarray): The ground truth map
-            unknown_threshold (float): Threshold for considering a cell as unknown
-        
-        Returns:
-            float: Exploration coverage percentage
-        """
-        # Align maps
-        aligned_slam, aligned_gt = self.align_maps(slam_map, ground_truth_map)
-        
-        # Free space in ground truth (explorable area)
-        free_gt = (aligned_gt < 0.5)
-        
-        # Mapped space in SLAM map (not unknown)
-        mapped_slam = ~((aligned_slam > unknown_threshold) & (aligned_slam < (1 - unknown_threshold)))
-        
-        # Calculate exploration coverage
-        explorable_area = np.sum(free_gt)
-        mapped_area = np.sum(free_gt & mapped_slam)
-        
-        coverage = mapped_area / explorable_area if explorable_area > 0 else 0
-        
-        return coverage
-    
     def visualize_comparison(self, slam_map, ground_truth_map, slam_name="SLAM Map", gt_name="Ground Truth", output_file=None):
         """
         Visualize the comparison between SLAM and ground truth maps
@@ -233,7 +204,7 @@ class MapEvaluator:
         axes[0, 1].axis('off')
         
         # Difference Map
-        im = axes[1, 0].imshow(diff_map, cmap='hot', vmin=0, vmax=1)
+        im = axes[1, 0].imshow(diff_map, cmap='hot_r', vmin=0, vmax=1)
         axes[1, 0].set_title('Difference Map')
         axes[1, 0].axis('off')
         plt.colorbar(im, ax=axes[1, 0], fraction=0.046, pad=0.04)
@@ -271,7 +242,6 @@ def main():
     
     # Calculate metrics
     metrics = evaluator.calculate_metrics(slam_map, gt_map)
-    coverage = evaluator.calculate_exploration_coverage(slam_map, gt_map)
     
     # Print metrics
     print("=== Map Evaluation Results ===")
@@ -282,7 +252,6 @@ def main():
     print(f"Recall / Completion Rate: {metrics['recall']:.4f} (higher is better)")
     print(f"F1 Score: {metrics['f1_score']:.4f} (higher is better)")
     print(f"IoU / Jaccard Index: {metrics['iou']:.4f} (higher is better)")
-    print(f"Exploration Coverage: {coverage:.2%}")
     
     # Visualize comparison
     evaluator.visualize_comparison(slam_map, gt_map, args.slam_name, args.gt_name, args.output)

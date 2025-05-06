@@ -37,17 +37,40 @@ class WebotsMapConverter:
         self.padding = padding
         self.walls = []
         self.arena_size = None
+        self.arena_wall_thickness = None
+        self.arena_wall_height = None
         
     def parse_world_file(self):
         """Parse the Webots world file to extract wall positions and sizes"""
         with open(self.world_file, 'r') as f:
             content = f.read()
         
-        # Extract arena size
-        arena_match = re.search(r'RectangleArena\s*{[^}]*floorSize\s+([0-9.]+)\s+([0-9.]+)', content, re.DOTALL)
+        # Extract arena parameters
+        arena_match = re.search(r'RectangleArena\s*{([^}]*)}', content, re.DOTALL)
         if arena_match:
-            self.arena_size = (float(arena_match.group(1)), float(arena_match.group(2)))
-            print(f"Arena size: {self.arena_size[0]}x{self.arena_size[1]} meters")
+            arena_content = arena_match.group(1)
+            
+            # Extract arena size
+            size_match = re.search(r'floorSize\s+([0-9.]+)\s+([0-9.]+)', arena_content)
+            if size_match:
+                self.arena_size = (float(size_match.group(1)), float(size_match.group(2)))
+                print(f"Arena size: {self.arena_size[0]}x{self.arena_size[1]} meters")
+            
+            # Extract wall thickness
+            thickness_match = re.search(r'wallThickness\s+([0-9.]+)', arena_content)
+            if thickness_match:
+                self.arena_wall_thickness = float(thickness_match.group(1))
+                print(f"Arena wall thickness: {self.arena_wall_thickness} meters")
+            else:
+                # Default wall thickness in Webots
+                self.arena_wall_thickness = 0.01
+                print(f"Using default arena wall thickness: {self.arena_wall_thickness} meters")
+            
+            # Extract wall height (optional)
+            height_match = re.search(r'wallHeight\s+([0-9.]+)', arena_content)
+            if height_match:
+                self.arena_wall_height = float(height_match.group(1))
+                print(f"Arena wall height: {self.arena_wall_height} meters")
         
         # Find all wall objects in the file
         wall_pattern = r'Wall\s*{([^}]*)}'
@@ -63,9 +86,11 @@ class WebotsMapConverter:
             
             # Extract rotation if present
             rotation = 0
-            rot_match = re.search(r'rotation\s+[0-9.]+\s+[0-9.]+\s+[0-9.]+\s+([+-]?[0-9.]+)', wall_data)
-            if rot_match and abs(float(rot_match.group(1))) > 1.5:  # Approximately -pi/2 rotation
-                rotation = 90  # 90 degrees rotation (perpendicular)
+            rot_match = re.search(r'rotation\s+([+-]?[0-9.]+)\s+([+-]?[0-9.]+)\s+([+-]?[0-9.]+)\s+([+-]?[0-9.]+)', wall_data)
+            if rot_match:
+                # Check for approximate -pi/2 rotation (perpendicular)
+                if abs(float(rot_match.group(4))) > 1.5:
+                    rotation = 90
             
             # Extract size
             size_match = re.search(r'size\s+([0-9.]+)\s+([0-9.]+)', wall_data)
@@ -87,11 +112,65 @@ class WebotsMapConverter:
             })
             
         print(f"Parsed {len(self.walls)} walls from the world file")
+    
+    def add_rectangle_arena_walls(self):
+        """Add RectangleArena walls to the wall list"""
+        if not self.arena_size:
+            print("Warning: No RectangleArena found, not adding arena walls")
+            return
+        
+        width, height = self.arena_size
+        thickness = self.arena_wall_thickness
+        
+        # Calculate half-sizes for placement
+        half_width = width / 2
+        half_height = height / 2
+        
+        # Add four walls around the arena
+        # Wall positions are offset by half thickness to place walls properly
+        
+        # Bottom wall (along x-axis, at minimum y)
+        self.walls.append({
+            'x': -half_width - thickness,  # Extend slightly beyond corners
+            'y': -half_height - thickness,
+            'width': width + 2 * thickness,
+            'height': thickness
+        })
+        
+        # Top wall (along x-axis, at maximum y)
+        self.walls.append({
+            'x': -half_width - thickness,
+            'y': half_height,
+            'width': width + 2 * thickness,
+            'height': thickness
+        })
+        
+        # Left wall (along y-axis, at minimum x)
+        self.walls.append({
+            'x': -half_width - thickness,
+            'y': -half_height,
+            'width': thickness,
+            'height': height
+        })
+        
+        # Right wall (along y-axis, at maximum x)
+        self.walls.append({
+            'x': half_width,
+            'y': -half_height,
+            'width': thickness,
+            'height': height
+        })
+        
+        print(f"Added 4 RectangleArena walls with thickness {thickness} meters")
 
     def create_occupancy_grid(self):
         """Create a 2D occupancy grid from the parsed wall data"""
         if not self.walls:
             raise ValueError("No walls parsed. Call parse_world_file() first")
+        
+        # Add RectangleArena walls if arena size is available
+        if self.arena_size:
+            self.add_rectangle_arena_walls()
         
         if not self.arena_size:
             # Estimate map bounds from walls if arena size not found
@@ -138,21 +217,51 @@ class WebotsMapConverter:
         # Flip the grid vertically to match standard map orientation
         grid = np.flipud(grid)
         
-        return grid, (origin_x, origin_y), self.resolution
+        # Create a map metadata dictionary
+        metadata = {
+            'resolution': self.resolution,
+            'origin': [origin_x, origin_y, 0.0],
+            'dimensions': [grid_width, grid_height],
+            'arena_size': self.arena_size,
+            'padding': self.padding
+        }
+        
+        return grid, metadata
 
-    def visualize_map(self, grid):
-        """Visualize the occupancy grid"""
-        plt.figure(figsize=(10, 8))
+    def visualize_map(self, grid, metadata=None):
+        """Visualize the occupancy grid with wall outlines"""
+        plt.figure(figsize=(12, 10))
+        
+        # Plot the occupancy grid
         plt.imshow(grid, cmap='gray_r', origin='lower')
+        
+        # Add arena outline if available
+        if self.arena_size and metadata:
+            origin_x, origin_y = metadata['origin'][0:2]
+            res = metadata['resolution']
+            arena_width, arena_height = self.arena_size
+            
+            # Convert arena bounds to pixel coordinates
+            arena_x = int((-arena_width/2 - origin_x) / res)
+            arena_y = int((-arena_height/2 - origin_y) / res)
+            arena_width_px = int(arena_width / res)
+            arena_height_px = int(arena_height / res)
+            
+            # Draw arena outline (flipped for visualization)
+            rect = Rectangle((arena_x, grid.shape[0] - arena_y - arena_height_px), 
+                             arena_width_px, arena_height_px,
+                             linewidth=2, edgecolor='blue', facecolor='none')
+            plt.gca().add_patch(rect)
+        
         plt.title('Webots World Occupancy Grid')
         plt.colorbar(label='Occupancy (0=free, 1=occupied)')
         plt.xlabel('X (pixels)')
         plt.ylabel('Y (pixels)')
         plt.tight_layout()
-        plt.savefig('webots_map.png', dpi=300)
+        plt.savefig('webots_map_visualization.png', dpi=300)
         plt.show()
         
-    def save_map_to_file(self, grid, filename='webots_map.pgm', yaml_filename='webots_map.yaml'):
+    def save_map_to_file(self, grid, metadata, filename='webots_map.pgm', yaml_filename='webots_map.yaml'):
         """Save the occupancy grid to a PGM file and metadata to YAML file (ROS map format)"""
         # Normalize grid values to 0-255 range (ROS convention: 0=occupied, 255=free, unknown=205)
         ros_grid = np.ones(grid.shape, dtype=np.uint8) * 255  # Default to free space
@@ -167,7 +276,7 @@ class WebotsMapConverter:
             f.write(ros_grid.tobytes())
         
         # Save metadata to YAML
-        origin_x, origin_y = -self.arena_size[0]/2 if self.arena_size else 0, -self.arena_size[1]/2 if self.arena_size else 0
+        origin_x, origin_y = metadata['origin'][0:2]
         with open(yaml_filename, 'w') as f:
             f.write(f"image: {filename}\n")
             f.write(f"resolution: {self.resolution}\n")
@@ -185,21 +294,27 @@ def main():
     parser.add_argument('--padding', type=float, default=0.5, help='Extra padding around the map in meters')
     parser.add_argument('--output', default='webots_map', help='Output filename base (without extension)')
     parser.add_argument('--visualize', action='store_true', help='Visualize the generated map')
+    parser.add_argument('--no-arena-walls', action='store_true', help='Exclude RectangleArena walls from the map')
     
     args = parser.parse_args()
     
     converter = WebotsMapConverter(args.world_file, args.resolution, args.padding)
     converter.parse_world_file()
-    grid, origin, resolution = converter.create_occupancy_grid()
+    
+    if args.no_arena_walls:
+        print("Excluding RectangleArena walls from the map")
+        converter.arena_size = None
+        
+    grid, metadata = converter.create_occupancy_grid()
     
     if args.visualize:
-        converter.visualize_map(grid)
+        converter.visualize_map(grid, metadata)
     
-    converter.save_map_to_file(grid, f"{args.output}.pgm", f"{args.output}.yaml")
+    converter.save_map_to_file(grid, metadata, f"{args.output}.pgm", f"{args.output}.yaml")
     
     print(f"Generated occupancy grid with dimensions {grid.shape[1]}x{grid.shape[0]} pixels")
-    print(f"Map origin: {origin}")
-    print(f"Map resolution: {resolution} meters/pixel")
+    print(f"Map origin: {metadata['origin'][0:2]}")
+    print(f"Map resolution: {metadata['resolution']} meters/pixel")
 
 if __name__ == "__main__":
     main()
