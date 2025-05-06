@@ -66,7 +66,7 @@ E-puck {
   ]
 }
 E-puck {
-  translation -0.25 0.75 0
+  translation -0.25 0 0
   name "robot5"
   controller "<extern>"
   turretSlot [
@@ -75,7 +75,7 @@ E-puck {
   ]
 }
 E-puck {
-  translation 0.25 0.75 0
+  translation 0.25 0 0
   name "robot6"
   controller "<extern>"
   turretSlot [
@@ -84,7 +84,7 @@ E-puck {
   ]
 }
 E-puck {
-  translation 0.75 0.75 0
+  translation 0 -0.25 0
   name "robot7"
   controller "<extern>"
   turretSlot [
@@ -93,7 +93,7 @@ E-puck {
   ]
 }
 E-puck {
-  translation -0.25 -0.75 0
+  translation 0 0.25 0
   name "robot8"
   controller "<extern>"
   turretSlot [
@@ -102,7 +102,7 @@ E-puck {
   ]
 }
 E-puck {
-  translation 0.25 -0.75 0
+  translation 0.5 0 0
   name "robot9"
   controller "<extern>"
   turretSlot [
@@ -111,7 +111,7 @@ E-puck {
   ]
 }
 E-puck {
-  translation -0.75 -0.75 0
+  translation -0.5 0 0
   name "robot10"
   controller "<extern>"
   turretSlot [
@@ -120,7 +120,7 @@ E-puck {
   ]
 }
 E-puck {
-  translation -0.25 -1.25 0
+  translation 0.5 0.25 0
   name "robot11"
   controller "<extern>"
   turretSlot [
@@ -129,7 +129,7 @@ E-puck {
   ]
 }
 E-puck {
-  translation 0.25 -1.25 0
+  translation -0.5 0.25 0
   name "robot12"
   controller "<extern>"
   turretSlot [

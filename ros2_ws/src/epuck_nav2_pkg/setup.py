@@ -13,6 +13,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
+        (os.path.join('share', package_name, 'config'), glob('config/*.xml')),
         # Install the script to share/epuck_nav2_pkg/scripts/
         (os.path.join('share', package_name, 'scripts'), ['scripts/swarm_nav_controller.py']),
         (os.path.join('share', package_name, 'scripts'), ['scripts/swarm_frontier.py']),
