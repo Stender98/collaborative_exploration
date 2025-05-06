@@ -169,7 +169,7 @@ class FrontierExploration(Node):
 
         # Frontier detection: unknown (-1) adjacent to known free space (0)
         kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.uint8)
-        free = (map_array == 0).astype(np.uint8)  # Only consider free space
+        free = (map_array == 0).astype(np.uint8)
         unknown = (map_array == -1).astype(np.uint8)
         border = cv2.dilate(free, kernel, iterations=1)
         frontier = cv2.bitwise_and(border, unknown)
@@ -180,49 +180,33 @@ class FrontierExploration(Node):
             self.get_logger().info('No frontiers found')
             return None
 
-        # Get current robot position
         robot_pos = np.array(self.get_robot_position())
         self.get_logger().info(f'Robot position: ({robot_pos[0]:.2f}, {robot_pos[1]:.2f})')
 
-        # Filter frontiers
         valid_coords = []
-        
+
         for y, x in frontier_coords:
-            # Skip frontiers near obstacles (any value > 0)
             region = map_array[max(0, y-1):min(height, y+2), max(0, x-1):min(width, x+2)]
             if np.any(region > 0):
                 continue
 
-            # Check for free space neighbors
             larger_region = map_array[max(0, y-2):min(height, y+3), max(0, x-2):min(width, x+3)]
             free_count = np.sum(larger_region == 0)
             if free_count < self.min_free_neighbors:
                 continue
 
-            # Convert to world coordinates
             world_x = origin.position.x + x * resolution
             world_y = origin.position.y + y * resolution
             world_pos = np.array([world_x, world_y])
 
-            # Skip if same as last goal
             if self.last_goal_coords and np.linalg.norm(world_pos - np.array(self.last_goal_coords)) < 0.05:
                 continue
 
-            # Skip if too close to other robots' frontiers
-            too_close = False
-            for other_robot, (fx, fy, _) in self.other_frontiers.items():
-                if np.linalg.norm(world_pos - np.array([fx, fy])) < self.min_frontier_distance:
-                    too_close = True
-                    self.get_logger().debug(f'Skip frontier at ({world_x:.2f}, {world_y:.2f}): too close to {other_robot}')
-                    break
-            if too_close:
-                continue
-
-            # Calculate distance from robot position
+            # Distance from robot
             dist_to_robot = np.linalg.norm(world_pos - robot_pos)
 
-            # Calculate angular score to favor different directions
-            angular_score = 0
+            # Angular diversity score
+            angular_score = 0.0
             if self.other_frontiers:
                 frontier_vec = world_pos - robot_pos
                 frontier_angle = np.arctan2(frontier_vec[1], frontier_vec[0])
@@ -230,23 +214,45 @@ class FrontierExploration(Node):
                     other_vec = np.array([fx, fy]) - robot_pos
                     other_angle = np.arctan2(other_vec[1], other_vec[0])
                     angle_diff = np.abs((frontier_angle - other_angle + np.pi) % (2 * np.pi) - np.pi)
-                    angular_score += angle_diff  # Higher score for larger angular difference
-            
-            valid_coords.append((y, x, world_x, world_y, free_count, dist_to_robot, angular_score))
+                    angular_score += angle_diff  # Higher score for distinct direction
+
+            # Soft repulsion from other frontiers [MODIFIED]
+            repulsion = 0.0
+            for _, (fx, fy, _) in self.other_frontiers.items():
+                d = np.linalg.norm(world_pos - np.array([fx, fy]))
+                if d < self.min_frontier_distance * 3:
+                    repulsion += np.exp(-d)  # Gaussian decay
+
+            valid_coords.append((y, x, world_x, world_y, free_count, dist_to_robot, angular_score, repulsion))
 
         self.get_logger().info(f'Found {len(valid_coords)} valid frontiers after filtering')
         if not valid_coords:
             self.get_logger().info('No valid frontiers found')
             return None
 
-        # Sort by distance to robot (ascending) as primary criterion
-        # Use angular score (descending) as secondary criterion to favor different directions
-        valid_coords.sort(key=lambda c: (c[5], -c[6]))
-        
-        # Select the closest frontier in a distinct direction
-        _, _, world_x, world_y, _, dist, _ = valid_coords[0]
+        # Normalize and score frontiers [MODIFIED]
+        alpha = 0.7  # Distance weight
+        beta = 0.3   # Angular score weight
+        gamma = 0.4  # Repulsion weight (discourages overlap)
+
+        max_dist = max(c[5] for c in valid_coords)
+        max_angle = max(c[6] for c in valid_coords) or 1.0
+        max_repulsion = max(c[7] for c in valid_coords) or 1.0
+
+        scored_frontiers = []
+        for c in valid_coords:
+            dist_norm = c[5] / max_dist
+            angle_norm = c[6] / max_angle
+            repulsion_norm = c[7] / max_repulsion
+            score = alpha * dist_norm - beta * angle_norm + gamma * repulsion_norm  # [MODIFIED]
+            scored_frontiers.append((*c, score))
+
+        scored_frontiers.sort(key=lambda c: c[-1])  # Lower score is better
+
+        _, _, world_x, world_y, _, dist, _, _, _ = scored_frontiers[0]
         self.get_logger().info(f'Selected frontier at ({world_x:.2f}, {world_y:.2f}), distance: {dist:.2f}m')
         return (world_x, world_y)
+
 
     def is_goal_still_frontier(self, goal_coords):
         """Check if the goal coordinates are still a frontier."""
