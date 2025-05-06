@@ -9,7 +9,6 @@ from action_msgs.msg import GoalStatus
 import cv2
 import tf2_ros
 from tf2_ros import TransformException
-import math
 
 class FrontierExploration(Node):
     def __init__(self, robot_name: str):
@@ -231,9 +230,9 @@ class FrontierExploration(Node):
             return None
 
         # Normalize and score frontiers [MODIFIED]
-        alpha = 0.7  # Distance weight
-        beta = 0.3   # Angular score weight
-        gamma = 0.4  # Repulsion weight (discourages overlap)
+        alpha = 0.8  # Distance weight
+        beta = 0.2   # Angular score weight
+        gamma = 0.6  # Repulsion weight (discourages overlap)
 
         max_dist = max(c[5] for c in valid_coords)
         max_angle = max(c[6] for c in valid_coords) or 1.0
@@ -294,6 +293,7 @@ class FrontierExploration(Node):
             self.sending_goal = False
             self.last_goal_time = self.get_clock().now()
             self.current_goal_handle = None
+
             # Try to find a new frontier immediately
             if self.map_data is not None and self.is_map_ready():
                 frontier = self.find_frontier()
