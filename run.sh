@@ -73,8 +73,8 @@ elif [ "$NUM_ROBOTS" -eq 3 ]; then
     WORLD_PATH="$REPO_DIR/worlds/Experiment_3_Robot.wbt"
 elif [ "$NUM_ROBOTS" -eq 5 ]; then
     WORLD_PATH="$REPO_DIR/worlds/Experiment_5_Robot.wbt"
-elif [ "$NUM_ROBOTS" -eq 7 ]; then
-    WORLD_PATH="$REPO_DIR/worlds/Experiment4.wbt"
+elif [ "$NUM_ROBOTS" -eq 8 ]; then
+    WORLD_PATH="$REPO_DIR/worlds/Experiment_8_Robot.wbt"
 elif [ "$NUM_ROBOTS" -eq 10 ]; then
     WORLD_PATH="$REPO_DIR/worlds/Experiment5.wbt"
 else
