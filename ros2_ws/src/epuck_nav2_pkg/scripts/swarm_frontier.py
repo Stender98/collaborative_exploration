@@ -37,7 +37,7 @@ class FrontierExploration(Node):
         # Subscriber to the map topic (shared)
         self.subscription = self.create_subscription(
             OccupancyGrid,
-            '/map',
+            f'/{self.robot_name}/global_costmap/costmap',
             self.map_callback,
             10
         )
@@ -164,8 +164,8 @@ class FrontierExploration(Node):
         resolution = self.map_data.info.resolution
         origin = self.map_data.info.origin
 
-        map_array = np.array(self.map_data.data, dtype=np.int8).reshape((height, width))
-        self.get_logger().debug(f'Map stats: {np.sum(map_array == -1)} unknown, {np.sum(map_array == 0)} free, {np.sum(map_array == 100)} occupied')
+        map_array = np.array(self.map_data.data, dtype=np.int16).reshape((height, width))
+        self.get_logger().debug(f'Map stats: {np.sum(map_array == -1)} unknown, {np.sum(map_array == 0)} free, {np.sum(map_array > 0)} occupied')
 
         # Frontier detection: unknown (-1) adjacent to known free space (0)
         kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]], dtype=np.uint8)
@@ -186,12 +186,11 @@ class FrontierExploration(Node):
 
         # Filter frontiers
         valid_coords = []
-        min_distance_from_origin = 0.1  # Minimum distance from map center (meters)
         
         for y, x in frontier_coords:
-            # Skip frontiers near obstacles
+            # Skip frontiers near obstacles (any value > 0)
             region = map_array[max(0, y-1):min(height, y+2), max(0, x-1):min(width, x+2)]
-            if np.any(region == 100):
+            if np.any(region > 0):
                 continue
 
             # Check for free space neighbors
@@ -221,20 +220,31 @@ class FrontierExploration(Node):
 
             # Calculate distance from robot position
             dist_to_robot = np.linalg.norm(world_pos - robot_pos)
+
+            # Calculate angular score to favor different directions
+            angular_score = 0
+            if self.other_frontiers:
+                frontier_vec = world_pos - robot_pos
+                frontier_angle = np.arctan2(frontier_vec[1], frontier_vec[0])
+                for _, (fx, fy, _) in self.other_frontiers.items():
+                    other_vec = np.array([fx, fy]) - robot_pos
+                    other_angle = np.arctan2(other_vec[1], other_vec[0])
+                    angle_diff = np.abs((frontier_angle - other_angle + np.pi) % (2 * np.pi) - np.pi)
+                    angular_score += angle_diff  # Higher score for larger angular difference
             
-            valid_coords.append((y, x, world_x, world_y, free_count, dist_to_robot))
+            valid_coords.append((y, x, world_x, world_y, free_count, dist_to_robot, angular_score))
 
         self.get_logger().info(f'Found {len(valid_coords)} valid frontiers after filtering')
         if not valid_coords:
             self.get_logger().info('No valid frontiers found')
             return None
 
-        # Sort by distance to robot (ascending) as primary criteria
-        # Use free space neighbors (descending) as secondary criteria
-        valid_coords.sort(key=lambda c: (c[5], -c[4]))
+        # Sort by distance to robot (ascending) as primary criterion
+        # Use angular score (descending) as secondary criterion to favor different directions
+        valid_coords.sort(key=lambda c: (c[5], -c[6]))
         
-        # Select the closest frontier with good exploration potential
-        _, _, world_x, world_y, _, dist = valid_coords[0]
+        # Select the closest frontier in a distinct direction
+        _, _, world_x, world_y, _, dist, _ = valid_coords[0]
         self.get_logger().info(f'Selected frontier at ({world_x:.2f}, {world_y:.2f}), distance: {dist:.2f}m')
         return (world_x, world_y)
 
