@@ -60,7 +60,7 @@ echo ""
 echo "Select number of robots: 1, 2, 3, 5, 8, 13 or 21"
 read -p "Enter number of robots: " NUM_ROBOTS
 
-if [["$NUM_ROBOTS" != "1" &&  "$NUM_ROBOTS" != "2" && "$NUM_ROBOTS" != "3" && "$NUM_ROBOTS" != "5" && "$NUM_ROBOTS" != "8" && "$NUM_ROBOTS" != "13" && "$NUM_ROBOTS" != "21" ]]; then
+if [[ "$NUM_ROBOTS" != "1" &&  "$NUM_ROBOTS" != "2" && "$NUM_ROBOTS" != "3" && "$NUM_ROBOTS" != "5" && "$NUM_ROBOTS" != "8" && "$NUM_ROBOTS" != "13" && "$NUM_ROBOTS" != "21" ]]; then
     echo "Invalid number of robots. Exiting."
     exit 1
 fi

@@ -172,7 +172,10 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     echo "Number of Robots: $NUM_ROBOTS"
     echo "Run Index: $RUN_INDEX"
 
-    # Step 2: Launch the ROS 2 system
+    # Step 2: Launch the ROS 2 system and cpu load monitor
+    $TERMINAL --tab --title="CPU Load Monitor (Run $RUN_INDEX)" -- bash -c "$REPO_DIR/logging/cpu_logger.py $MODE_INPUT $NUM_ROBOTS $RUN_INDEX; exec bash" &
+    CPU_MONITOR_PID=$!
+
     $TERMINAL --tab --title="ROS 2 System (Run $RUN_INDEX)" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && ros2 launch epuck_nav2_pkg $LAUNCH \
         webots_controller:='$WEBOTS_CONTROLLER' \
         robot_count:='$NUM_ROBOTS'; exec bash" &
@@ -210,7 +213,24 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     echo "Running simulation for 120 seconds..."
     sleep 120
 
-    # Step 6: Kill all processes
+    # Step 6: Stop cpu monitor, save map and run evaluation scripts
+    echo "Stopping CPU load monitor..."
+    kill -9 $CPU_MONITOR_PID 2>/dev/null
+    # Ensure the CPU monitor is terminated
+    pkill -f "cpu_logger.py" 2>/dev/null
+
+    echo "Saving map and running evaluation scripts..."
+    ros2 run map_saver_cli -f "$REPO_DIR/logs/$MODE/$NUM_ROBOTS/$RUN_INDEX/slam_map" --ros-args -p use_sim_time:=true
+    $TERMINAL --tab --title="Map Evaluation (Run $RUN_INDEX)" -- bash -c "python3 $REPO_DIR/logging/crop.py $MODE_INPUT $NUM_ROBOTS $RUN_INDEX && python3 $REPO_DIR/logging/map_evaluation.py $MODE_INPUT $NUM_ROBOTS $RUN_INDEX && python3 $REPO_DIR/logging/cpu_plot.py $MODE_INPUT $NUM_ROBOTS $RUN_INDEX; exec bash" &
+    EVAL_PID=$!
+
+    # Wait for evaluation to finish
+    echo "Waiting for evaluation to finish..."
+    wait $EVAL_PID
+    # Ensure the evaluation script is terminated
+    kill -9 $EVAL_PID 2>/dev/null
+
+    # Step 7: Kill all processes
     echo "Terminating processes for run $RUN_INDEX..."
     kill -9 $WEBOTS_PID $ROS2_PID $LOGGER_PID 2>/dev/null
     # Ensure all related processes are terminated
