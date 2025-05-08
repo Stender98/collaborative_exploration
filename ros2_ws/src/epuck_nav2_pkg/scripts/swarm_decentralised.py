@@ -80,7 +80,7 @@ class EPuckController(Node):
         # ROS 2 publishers and broadcasters
         self.odom_publisher = self.create_publisher(Odometry, self.robot.getName() + '/odom', 10)
         self.scan_publisher = self.create_publisher(LaserScan, self.robot.getName() + '/scan', 10)
-        self.clock_publisher = self.create_publisher(Clock, self.robot.getName() + '/clock', 10)
+        self.clock_publisher = self.create_publisher(Clock, '/clock', 10)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
     def set_speed(self, left, right):

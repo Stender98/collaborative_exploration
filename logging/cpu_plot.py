@@ -17,8 +17,8 @@ if args.mode == 'c':
 elif args.mode == 'd':
     mode = 'decentralised'
 
-LOG_FILE = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "cpu_log.csv")
-OUTPUT_FILE = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "cpu_log_graph.png")
+LOG_FILE = os.path.join(current_directory, "logs", mode, str(args.num_robots), str(args.run_count), "cpu_log.csv")
+OUTPUT_FILE = os.path.join(current_directory, "logs", mode, str(args.num_robots), str(args.run_count), "cpu_log_graph.png")
 
 df = pd.read_csv(LOG_FILE)
 df.columns = df.columns.str.strip()

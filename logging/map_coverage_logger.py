@@ -47,7 +47,7 @@ class MapCoverageLogger(Node):
         # Create log directory and file
         self.log_dir = f"logs/{self.mode}/{self.num_robots}/{self.run_count}"
         os.makedirs(self.log_dir, exist_ok=True)
-        self.log_file = os.path.join(self.log_dir, "coverage.log")
+        self.log_file = os.path.join(self.log_dir, "coverage.csv")
         
         # Write header to log file
         with open(self.log_file, 'w') as f:
@@ -98,13 +98,13 @@ class MapCoverageLogger(Node):
 def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description='Map Coverage Logger')
-    parser.add_argument('mode', choices=['c', 'd'], help='Mode: c for centralized, d for decentralized')
+    parser.add_argument('mode', choices=['c', 'd'], help='Mode: c for centralised, d for decentralised')
     parser.add_argument('num_robots', type=int, help='Number of robots')
     parser.add_argument('run_count', type=int, help='Current run count')
     args = parser.parse_args()
 
     # Convert mode to full name
-    mode = 'centralized' if args.mode == 'c' else 'decentralized'
+    mode = 'centralised' if args.mode == 'c' else 'decentralised'
 
     # Initialize ROS 2
     rclpy.init()
