@@ -26,7 +26,7 @@ DEBUG = False
 ENABLE_LIDAR = True
 ENABLE_CAMERA = False
 ENABLE_DIST = False
-STUCK_TIMEOUT = 60.0  # 1 minute timeout for no progress
+STUCK_TIMEOUT = 30.0  # 1 minute timeout for no progress
 MOVEMENT_THRESHOLD = 0.05  # Minimum distance (meters) to consider as progress
 
 class EPuckController(Node):
@@ -83,7 +83,7 @@ class EPuckController(Node):
         self.odom_publisher = self.create_publisher(Odometry, self.robot.getName() + '/odom', 10)
         self.scan_publisher = self.create_publisher(LaserScan, self.robot.getName() + '/scan', 10)
         self.clock_publisher = self.create_publisher(Clock, '/clock', 10)
-        self.terminated_publisher = self.create_publisher(String, self.robot.getName() + '/terminated', 10) 
+        self.terminated_publisher = self.create_publisher(String, '/terminated', 10) 
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
         # Subscriber for Nav2 velocity commands
