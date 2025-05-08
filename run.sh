@@ -57,10 +57,10 @@ fi
 
 
 echo ""
-echo "Select number of robots: 2, 3, 5, 7, or 10"
+echo "Select number of robots: 1, 2, 3, 5, 8, 13 or 21"
 read -p "Enter number of robots: " NUM_ROBOTS
 
-if [[ "$NUM_ROBOTS" != "2" && "$NUM_ROBOTS" != "3" && "$NUM_ROBOTS" != "5" && "$NUM_ROBOTS" != "7" && "$NUM_ROBOTS" != "10" ]]; then
+if [["$NUM_ROBOTS" != "1" &&  "$NUM_ROBOTS" != "2" && "$NUM_ROBOTS" != "3" && "$NUM_ROBOTS" != "5" && "$NUM_ROBOTS" != "8" && "$NUM_ROBOTS" != "13" && "$NUM_ROBOTS" != "21" ]]; then
     echo "Invalid number of robots. Exiting."
     exit 1
 fi
@@ -76,16 +76,20 @@ REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 
 # Define world and controller paths
-if [ "$NUM_ROBOTS" -eq 2 ]; then
-    WORLD_PATH="$REPO_DIR/worlds/Experiment1.wbt"
+if [ "$NUM_ROBOTS" -eq 1 ]; then
+    WORLD_PATH="$REPO_DIR/worlds/Experiment_1_Robot.wbt"
+elif [ "$NUM_ROBOTS" -eq 2 ]; then
+    WORLD_PATH="$REPO_DIR/worlds/Experiment_2_Robot.wbt"
 elif [ "$NUM_ROBOTS" -eq 3 ]; then
-    WORLD_PATH="$REPO_DIR/worlds/Experiment2.wbt"
+    WORLD_PATH="$REPO_DIR/worlds/Experiment_3_Robot.wbt"
 elif [ "$NUM_ROBOTS" -eq 5 ]; then
-    WORLD_PATH="$REPO_DIR/worlds/Experiment3.wbt"
-elif [ "$NUM_ROBOTS" -eq 7 ]; then
-    WORLD_PATH="$REPO_DIR/worlds/Experiment4.wbt"
-elif [ "$NUM_ROBOTS" -eq 10 ]; then
-    WORLD_PATH="$REPO_DIR/worlds/Experiment5.wbt"
+    WORLD_PATH="$REPO_DIR/worlds/Experiment_5_Robot.wbt"
+elif [ "$NUM_ROBOTS" -eq 8 ]; then
+    WORLD_PATH="$REPO_DIR/worlds/Experiment_8_Robot.wbt"
+elif [ "$NUM_ROBOTS" -eq 13 ]; then
+    WORLD_PATH="$REPO_DIR/worlds/Experiment_13_Robot.wbt"
+elif [ "$NUM_ROBOTS" -eq 21 ]; then
+    WORLD_PATH="$REPO_DIR/worlds/Experiment_21_Robot.wbt"
 else
     echo "Error: Invalid number of robots."
     exit 1

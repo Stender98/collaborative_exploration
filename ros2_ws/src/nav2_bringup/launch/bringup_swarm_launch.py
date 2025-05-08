@@ -13,25 +13,16 @@
 # limitations under the License.
 
 import os
-
 from ament_index_python.packages import get_package_share_directory
-
 from launch import LaunchDescription
-from launch.actions import (
-    DeclareLaunchArgument,
-    GroupAction,
-    IncludeLaunchDescription,
-    SetEnvironmentVariable
-)
+from launch.actions import DeclareLaunchArgument, GroupAction, SetEnvironmentVariable, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PythonExpression
-from launch_ros.actions import Node
-from launch_ros.actions import PushROSNamespace
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node, PushROSNamespace
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import ReplaceString, RewrittenYaml
-
-
+from launch.actions import OpaqueFunction
 
 def generate_launch_description():
     # Get the launch directory
@@ -45,109 +36,105 @@ def generate_launch_description():
     autostart = LaunchConfiguration('autostart')
     use_composition = LaunchConfiguration('use_composition')
     log_level = LaunchConfiguration('log_level')
+    robot_count = LaunchConfiguration('robot_count')
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
-    # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
-    # https://github.com/ros/geometry2/issues/32
-    # https://github.com/ros/robot_state_publisher/pull/30
-    # TODO(orduno) Substitute with `PushNodeRemapping`
-    #              https://github.com/ros2/launch_ros/issues/56
     remappings = [('/tf', '/tf'), ('/tf_static', '/tf_static')]
 
-    # Only it applys when `use_namespace` is True.
-    # '<robot_namespace>' keyword shall be replaced by 'namespace' launch argument
-    # in config file 'nav2_multirobot_params.yaml' as a default & example.
-    # User defined config file should contain '<robot_namespace>' keyword for the replacements.
-
+    # Environment variable for logging
     stdout_linebuf_envvar = SetEnvironmentVariable(
         'RCUTILS_LOGGING_BUFFERED_STREAM', '1'
     )
 
+    # Declare launch arguments
     declare_namespace_cmd = DeclareLaunchArgument(
         'namespace', default_value='', description='Top-level namespace'
     )
-
-
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time',
         default_value='false',
-        description='Use simulation (Gazebo) clock if true',
+        description='Use simulation (Gazebo) clock if true'
     )
-
     declare_params_file_cmd = DeclareLaunchArgument(
         'params_file',
         default_value=os.path.join(bringup_dir, 'params', 'nav2_params.yaml'),
-        description='Full path to the ROS2 parameters file to use for all launched nodes',
+        description='Full path to the ROS2 parameters file to use for all launched nodes'
     )
-
     declare_autostart_cmd = DeclareLaunchArgument(
         'autostart',
         default_value='true',
-        description='Automatically startup the nav2 stack',
+        description='Automatically startup the nav2 stack'
     )
-
     declare_use_composition_cmd = DeclareLaunchArgument(
         'use_composition',
         default_value='True',
-        description='Whether to use composed bringup',
+        description='Whether to use composed bringup'
     )
-
-
     declare_log_level_cmd = DeclareLaunchArgument(
         'log_level', default_value='info', description='log level'
     )
+    declare_robot_count_cmd = DeclareLaunchArgument(
+        'robot_count',
+        default_value='2',
+        description='Number of robots to launch'
+    )
 
-    nav_instances_cmds = []
+    # Use OpaqueFunction to handle dynamic robot count
+    def launch_robots(context, *args, **kwargs):
+        num_robots = int(LaunchConfiguration('robot_count').perform(context))
+        nav_instances_cmds = []
 
-    for i in range(2):
-        namespace = f'robot{i}'
+        for i in range(num_robots):
+            namespace = f'robot{i}'
 
-        temp_paramsfile = ReplaceString(
-            source_file=params_file,
-            replacements={'<robot_namespace>': ('/', namespace), '<robot_frame_namespace>': ('', namespace)},
-        )
+            temp_paramsfile = ReplaceString(
+                source_file=params_file,
+                replacements={'<robot_namespace>': ('/', namespace), '<robot_frame_namespace>': ('', namespace)},
+            )
 
-        configured_params = ParameterFile(
-            RewrittenYaml(
-                source_file=temp_paramsfile,
-                root_key=namespace,
-                param_rewrites={},
-                convert_types=True,
-            ),
-            allow_substs=True,
-        )
-
-        # Specify the actions
-        group = GroupAction(
-            [
-                PushROSNamespace(namespace),
-                Node(
-                    condition=IfCondition(use_composition),
-                    name='nav2_container',
-                    package='rclcpp_components',
-                    executable='component_container_isolated',
-                    parameters=[configured_params, {'autostart': autostart}],
-                    arguments=['--ros-args', '--log-level', log_level],
-                    remappings=remappings,
-                    output='screen',
+            configured_params = ParameterFile(
+                RewrittenYaml(
+                    source_file=temp_paramsfile,
+                    root_key=namespace,
+                    param_rewrites={},
+                    convert_types=True,
                 ),
-                IncludeLaunchDescription(
-                    PythonLaunchDescriptionSource(
-                        os.path.join(launch_dir, 'swarm_navigation_launch.py')
+                allow_substs=True,
+            )
+
+            # Specify the actions for each robot
+            group = GroupAction(
+                [
+                    PushROSNamespace(namespace),
+                    Node(
+                        condition=IfCondition(use_composition),
+                        name='nav2_container',
+                        package='rclcpp_components',
+                        executable='component_container_isolated',
+                        parameters=[configured_params, {'autostart': autostart}],
+                        arguments=['--ros-args', '--log-level', log_level],
+                        remappings=remappings,
+                        output='screen',
                     ),
-                    launch_arguments={
-                        'namespace': namespace,
-                        'use_sim_time': use_sim_time,
-                        'autostart': autostart,
-                        'params_file': temp_paramsfile,
-                        'use_composition': use_composition,
-                        'container_name':'nav2_container',
-                    }.items(),
-                ),
-            ]
-        )
+                    IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource(
+                            os.path.join(launch_dir, 'swarm_navigation_launch.py')
+                        ),
+                        launch_arguments={
+                            'namespace': namespace,
+                            'use_sim_time': use_sim_time,
+                            'autostart': autostart,
+                            'params_file': temp_paramsfile,
+                            'use_composition': use_composition,
+                            'container_name': 'nav2_container',
+                        }.items(),
+                    ),
+                ]
+            )
 
-        nav_instances_cmds.append(group)
+            nav_instances_cmds.append(group)
+
+        return nav_instances_cmds
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -162,9 +149,9 @@ def generate_launch_description():
     ld.add_action(declare_autostart_cmd)
     ld.add_action(declare_use_composition_cmd)
     ld.add_action(declare_log_level_cmd)
+    ld.add_action(declare_robot_count_cmd)
 
-    # Add the actions to launch all of the navigation nodes
-    for simulation_instance_cmd in nav_instances_cmds:
-        ld.add_action(simulation_instance_cmd)
+    # Add the OpaqueFunction to generate robot instances
+    ld.add_action(OpaqueFunction(function=launch_robots))
 
     return ld
