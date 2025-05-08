@@ -5,6 +5,7 @@ from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
+from std_msgs.msg import String 
 from geometry_msgs.msg import Quaternion, TransformStamped
 from rosgraph_msgs.msg import Clock
 import tf_transformations
@@ -26,6 +27,8 @@ WHEEL_DISTANCE = 0.052
 
 # System status
 ENABLE_LIDAR = True
+STUCK_TIMEOUT = 30.0  # 1 minute timeout for no progress
+MOVEMENT_THRESHOLD = 0.05  # Minimum distance (meters) to consider as progress
 
 class EPuckController(Node):
     def __init__(self):
@@ -44,6 +47,11 @@ class EPuckController(Node):
         self.theta = 0.0
         self.last_time = self.robot.getTime()
         self.first_step = True
+
+        # For tracking movement progress
+        self.last_moved_time = self.robot.getTime()
+        self.last_x = self.x
+        self.last_y = self.y
 
         # Emitter and receiver for robot detection
         self.emitter = self.robot.getDevice("emitter")
@@ -81,6 +89,7 @@ class EPuckController(Node):
         self.odom_publisher = self.create_publisher(Odometry, self.robot.getName() + '/odom', 10)
         self.scan_publisher = self.create_publisher(LaserScan, self.robot.getName() + '/scan', 10)
         self.clock_publisher = self.create_publisher(Clock, '/clock', 10)
+        self.terminated_publisher = self.create_publisher(String, '/terminated', 10) 
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
     def set_speed(self, left, right):
@@ -158,6 +167,24 @@ class EPuckController(Node):
         self.x += dx if not np.isnan(dx) else 0.0
         self.y += dy if not np.isnan(dy) else 0.0
         self.theta += delta_theta if not np.isnan(delta_theta) else 0.0
+
+        # Check for movement progress
+        distance_moved = np.sqrt((self.x - self.last_x) ** 2 + (self.y - self.last_y) ** 2)
+        if distance_moved > MOVEMENT_THRESHOLD:
+            self.last_moved_time = current_time
+            self.last_x = self.x
+            self.last_y = self.y
+
+        # Check if stuck for too long
+        if current_time - self.last_moved_time > STUCK_TIMEOUT:
+            self.get_logger().warn(f"Robot {self.robot.getName()} stuck for over {STUCK_TIMEOUT} seconds, terminating.")
+            # Publish termination message
+            term_msg = String()
+            term_msg.data = f"Robot {self.robot.getName()} terminated due to no progress."
+            self.terminated_publisher.publish(term_msg)
+            self.cleanup()
+            return 
+
 
         # Odometry message
         odom_msg = Odometry()
