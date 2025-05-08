@@ -1,14 +1,29 @@
 import numpy as np
 import cv2
 import argparse
+import os
 
 parser = argparse.ArgumentParser(description='Crop a map image and update the YAML file.')
-parser.add_argument('image', type=str, help='Path to the map image file')
-parser.add_argument('yaml', type=str, help='Path to the YAML file')
+parser.add_argument('mode', choices=['c', 'd'], help='Mode: c for centralized, d for decentralized')
+parser.add_argument('num_robots', type=int, help='Number of robots')
+parser.add_argument('run_count', type=int, help='Current run count')
+args = parser.parse_args()
+
+current_directory = os.path.dirname(os.path.abspath(__file__))
+current_directory += "/../"  # Adjust path to the parent directory
+
+if args.mode == 'c':
+    mode = 'centralised'
+elif args.mode == 'd':
+    mode = 'decentralised'
 
 args = parser.parse_args()
 
-img = cv2.imread(args.image, cv2.IMREAD_UNCHANGED)
+slam_map_file = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"slam_map_{args.run_count}_run_count.pgm")
+slam_yaml_file = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"slam_map_{args.run_count}_run_count.yaml")
+    
+
+img = cv2.imread(slam_map_file, cv2.IMREAD_UNCHANGED)
 if img is None:
     raise FileNotFoundError(f"Image file {args.image} not found.")
 
@@ -20,11 +35,11 @@ y1, x1 = coords.max(axis=0) + 1
 
 cropped = img[y0:y1, x0:x1]
 
-base_name = args.image.split('.')[0]
+base_name = slam_map_file.split('.')[0]
 cropped_name = f"{base_name}_cropped.pgm"
 cv2.imwrite(cropped_name, cropped)
 
-with open(args.yaml, 'r') as f:
+with open(slam_yaml_file, 'r') as f:
     lines = f.readlines()
 for i, line in enumerate(lines):
     if 'image:' in line:

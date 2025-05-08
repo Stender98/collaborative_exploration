@@ -224,31 +224,21 @@ class MapEvaluator:
 
 def main():
     parser = argparse.ArgumentParser(description='Evaluate SLAM map against ground truth')
-    parser.add_argument('mode', choices=['c', 'd'], help='Mode: c for centralized, d for decentralized')
-    parser.add_argument('num_robots', type=int, help='Number of robots')
-    parser.add_argument('run_count', type=int, help='Current run count')
+    parser.add_argument('slam_map', help='Path to the SLAM-generated PGM map file')
+    parser.add_argument('ground_truth_map', help='Path to the ground truth PGM map file')
+    parser.add_argument('--slam-yaml', help='Path to the SLAM map YAML metadata file')
+    parser.add_argument('--gt-yaml', help='Path to the ground truth map YAML metadata file')
+    parser.add_argument('--output', help='Path to save the visualization')
+    parser.add_argument('--slam-name', default='SLAM Map', help='Name of the SLAM map for visualization')
+    parser.add_argument('--gt-name', default='Ground Truth', help='Name of the ground truth map for visualization')
+    
     args = parser.parse_args()
-
-    current_directory = os.path.dirname(os.path.abspath(__file__))
-    current_directory += "/../"  # Adjust path to the parent directory
-
-    if args.mode == 'c':
-        mode = 'centralised'
-    elif args.mode == 'd':
-        mode = 'decentralised'
-
-    # Define file paths
-    slam_map_file = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"slam_map_{args.run_count}_run_count_cropped.pgm")
-    slam_yaml_file = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"slam_map_{args.run_count}_run_count_cropped.yaml")
-    gt_map_file = os.path.join(current_directory, "base_case_comparison", "webots_map.pgm")
-    gt_yaml_file = os.path.join(current_directory, "base_case_comparison", "webots_map.yaml")
-    output_file_png = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"comparison_{args.run_count}_run_count.png")
-    output_file_csv = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"metrics_{args.run_count}_run_count.csv")
+    
     evaluator = MapEvaluator()
     
     # Load maps
-    slam_map, slam_metadata = evaluator.load_pgm_map(slam_map_file, slam_yaml_file)
-    gt_map, gt_metadata = evaluator.load_pgm_map(gt_map_file, gt_yaml_file)
+    slam_map, slam_metadata = evaluator.load_pgm_map(args.slam_map, args.slam_yaml)
+    gt_map, gt_metadata = evaluator.load_pgm_map(args.ground_truth_map, args.gt_yaml)
     
     # Calculate metrics
     metrics = evaluator.calculate_metrics(slam_map, gt_map)
@@ -263,15 +253,8 @@ def main():
     print(f"F1 Score: {metrics['f1_score']:.4f} (higher is better)")
     print(f"IoU / Jaccard Index: {metrics['iou']:.4f} (higher is better)")
     
-    #Write metrics to CSV
-    with open(output_file_csv, 'w') as f:
-        f.write("Metric,Value\n")
-        for key, value in metrics.items():
-            f.write(f"{key},{value:.4f}\n")
-        print(f"Metrics saved to {output_file_csv}")
-
     # Visualize comparison
-    evaluator.visualize_comparison(slam_map, gt_map, "SLAM Map", "Ground Truth", output_file_png)
+    evaluator.visualize_comparison(slam_map, gt_map, args.slam_name, args.gt_name, args.output)
 
 if __name__ == "__main__":
     main()

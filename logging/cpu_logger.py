@@ -1,8 +1,24 @@
 import psutil
 import time
+import argparse
+import os
 
-TARGET_NAME = "swarm_decentralised"  # Change with arg
-LOG_FILE = "cpu_logger_output.csv"
+parser = argparse.ArgumentParser(description='CPU and Memory Usage Logger')
+parser.add_argument('mode', choices=['c', 'd'], help='Mode: c for centralized, d for decentralized')
+parser.add_argument('num_robots', type=int, help='Number of robots')
+parser.add_argument('run_count', type=int, help='Current run count')
+args = parser.parse_args()
+
+current_directory = os.path.dirname(os.path.abspath(__file__))
+current_directory += "/../"  # Adjust path to the parent directory
+
+if args.mode == 'c':
+    mode = 'centralised'
+elif args.mode == 'd':
+    mode = 'decentralised'
+
+TARGET_NAME = "swarm" # Target all processes with "swarm" in their command line
+LOG_FILE = current_directory + "/" + "logs/" + mode + "/" + str(args.num_robots) + "_robots/" + "cpu_log_" + str(args.run_count) + "_run_count" + ".csv"
 
 print(f"Monitoring processes matching: {TARGET_NAME}")
 print(f"Logging to: {LOG_FILE}")
