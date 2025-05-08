@@ -17,7 +17,7 @@ if args.mode == 'c':
 elif args.mode == 'd':
     mode = 'decentralised'
 
-TARGET_NAME = "webots" # Target all processes with "webots" in their command line
+TARGET_NAME = "swarm" # Target all processes with "webots" in their command line
 LOG_FILE = os.path.join(current_directory, "logs", mode, str(args.num_robots), str(args.run_count), "cpu_log.csv")
 
 # Ensure the directory exists
