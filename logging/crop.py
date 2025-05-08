@@ -19,9 +19,9 @@ elif args.mode == 'd':
 
 args = parser.parse_args()
 
-slam_map_file = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"slam_map_{args.run_count}_run_count.pgm")
-slam_yaml_file = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"slam_map_{args.run_count}_run_count.yaml")
-    
+slam_map_file = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "slam_map.pgm")
+slam_yaml_file = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "slam_map.yaml")
+  
 
 img = cv2.imread(slam_map_file, cv2.IMREAD_UNCHANGED)
 if img is None:

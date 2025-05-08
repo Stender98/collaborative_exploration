@@ -90,9 +90,12 @@ class EPuckController(Node):
 
     def publish_clock(self, clock):
         """Publish simulation time to /clock."""
-        clock_msg = Clock()
-        clock_msg.clock = clock
-        self.clock_publisher.publish(clock_msg)
+        if(self.robot.getName() == 'robot0'):
+            clock_msg = Clock()
+            clock_msg.clock = clock
+            self.clock_publisher.publish(clock_msg)
+        else:
+            pass
 
     def set_speed(self, left, right):
         """Set motor velocities."""

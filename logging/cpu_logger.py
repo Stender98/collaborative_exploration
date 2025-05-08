@@ -18,7 +18,7 @@ elif args.mode == 'd':
     mode = 'decentralised'
 
 TARGET_NAME = "swarm" # Target all processes with "swarm" in their command line
-LOG_FILE = current_directory + "/" + "logs/" + mode + "/" + str(args.num_robots) + "_robots/" + "cpu_log_" + str(args.run_count) + "_run_count" + ".csv"
+LOG_FILE = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "cpu_log.csv")
 
 print(f"Monitoring processes matching: {TARGET_NAME}")
 print(f"Logging to: {LOG_FILE}")

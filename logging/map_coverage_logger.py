@@ -36,7 +36,7 @@ class MapCoverageLogger(Node):
         )
 
         # Create log directory and file
-        self.log_dir = f"log/{self.mode}/{self.num_robots}/{self.run_count}"
+        self.log_dir = f"logs/{self.mode}/{self.num_robots}/{self.run_count}"
         os.makedirs(self.log_dir, exist_ok=True)
         self.log_file = os.path.join(self.log_dir, "coverage.log")
         

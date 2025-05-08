@@ -238,12 +238,12 @@ def main():
         mode = 'decentralised'
 
     # Define file paths
-    slam_map_file = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"slam_map_{args.run_count}_run_count_cropped.pgm")
-    slam_yaml_file = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"slam_map_{args.run_count}_run_count_cropped.yaml")
+    slam_map_file = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "slam_map_cropped.pgm")
+    slam_yaml_file = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "slam_map_cropped.yaml")
     gt_map_file = os.path.join(current_directory, "base_case_comparison", "webots_map.pgm")
     gt_yaml_file = os.path.join(current_directory, "base_case_comparison", "webots_map.yaml")
-    output_file_png = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"comparison_{args.run_count}_run_count.png")
-    output_file_csv = os.path.join(current_directory, "logs", mode, f"{args.num_robots}_robots", f"metrics_{args.run_count}_run_count.csv")
+    output_file_png = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "map_comparison.png")
+    output_file_csv = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "metrics.csv")
     evaluator = MapEvaluator()
     
     # Load maps
