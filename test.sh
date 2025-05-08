@@ -211,7 +211,7 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
 
     # Step 5: Run for 120 seconds
     echo "Running simulation for 120 seconds..."
-    sleep 30
+    sleep 120
 
     # Step 6: Stop cpu monitor, save map and run evaluation scripts
     echo "Stopping CPU load monitor..."
@@ -222,7 +222,7 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
 
     echo "Saving map and running evaluation scripts..."
     ros2 run nav2_map_server map_saver_cli -f "$REPO_DIR/logs/$MODE/$NUM_ROBOTS/$RUN_INDEX/slam_map" 
-    sleep 10
+    sleep 5
     echo "Map saved."
     $TERMINAL --tab --title="Map Evaluation (Run $RUN_INDEX)" -- bash -c "python3 $REPO_DIR/logging/crop.py $MODE_INPUT $NUM_ROBOTS $RUN_INDEX && python3 $REPO_DIR/logging/map_evaluation.py $MODE_INPUT $NUM_ROBOTS $RUN_INDEX && python3 $REPO_DIR/logging/cpu_plot.py $MODE_INPUT $NUM_ROBOTS $RUN_INDEX; exec bash" &
     EVAL_PID=$!
@@ -230,9 +230,9 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     # Wait for evaluation to finish
     echo "Waiting for evaluation to finish..."
     wait $EVAL_PID
+    sleep 2
     # Ensure the evaluation script is terminated
     kill -9 $EVAL_PID 2>/dev/null
-    pkill -f "crop.py" 2>/dev/null
     pkill -f "map_evaluation.py" 2>/dev/null
     pkill -f "cpu_plot.py" 2>/dev/null
 
@@ -245,7 +245,7 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     pkill -f "$LOGGING_SCRIPT" 2>/dev/null
 
     echo "Run $RUN_INDEX completed."
-    sleep 2 # Brief pause before starting next run
+    sleep 10 # Brief pause before starting next run
 done
 
 echo "All $RUN_COUNT runs completed! Check the terminal tabs and log files for output."
