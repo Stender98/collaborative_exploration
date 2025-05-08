@@ -19,8 +19,8 @@ elif args.mode == 'd':
 
 args = parser.parse_args()
 
-slam_map_file = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "slam_map.pgm")
-slam_yaml_file = os.path.join(current_directory, "logs", mode, args.num_robots, args.run_count, "slam_map.yaml")
+slam_map_file = os.path.join(current_directory, "logs", mode, str(args.num_robots), str(args.run_count), "slam_map.pgm")
+slam_yaml_file = os.path.join(current_directory, "logs", mode, str(args.num_robots), str(args.run_count), "slam_map.yaml")
   
 
 img = cv2.imread(slam_map_file, cv2.IMREAD_UNCHANGED)
@@ -35,8 +35,7 @@ y1, x1 = coords.max(axis=0) + 1
 
 cropped = img[y0:y1, x0:x1]
 
-base_name = slam_map_file.split('.')[0]
-cropped_name = f"{base_name}_cropped.pgm"
+cropped_name = os.path.join(current_directory, "logs", mode, str(args.num_robots), str(args.run_count), "slam_map_cropped.pgm")
 cv2.imwrite(cropped_name, cropped)
 
 with open(slam_yaml_file, 'r') as f:
@@ -47,8 +46,7 @@ for i, line in enumerate(lines):
     elif 'resolution:' in line:
         lines[i] = f"resolution: {0.05}\n"  
 
-base_name = cropped_name.split('.')[0]
-new_yaml_name = f"{base_name}.yaml"
+new_yaml_name = os.path.join(current_directory, "logs", mode, str(args.num_robots), str(args.run_count), "slam_map_cropped.yaml")
 with open(new_yaml_name, 'w') as f:
     f.writelines(lines)
 
