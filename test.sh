@@ -215,9 +215,10 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
 
     # Step 6: Stop cpu monitor, save map and run evaluation scripts
     echo "Stopping CPU load monitor..."
-    kill -9 $CPU_MONITOR_PID 2>/dev/null
+    kill -9 $CPU_MONITOR_PID $LOGGER_PID 2>/dev/null
     # Ensure the CPU monitor is terminated
     pkill -f "cpu_logger.py" 2>/dev/null
+    pkill -f "$LOGGING_SCRIPT" 2>/dev/null
 
     echo "Saving map and running evaluation scripts..."
     ros2 run nav2_map_server map_saver_cli -f "$REPO_DIR/logs/$MODE/$NUM_ROBOTS/$RUN_INDEX/slam_map" 
@@ -231,10 +232,13 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     wait $EVAL_PID
     # Ensure the evaluation script is terminated
     kill -9 $EVAL_PID 2>/dev/null
+    pkill -f "crop.py" 2>/dev/null
+    pkill -f "map_evaluation.py" 2>/dev/null
+    pkill -f "cpu_plot.py" 2>/dev/null
 
     # Step 7: Kill all processes
     echo "Terminating processes for run $RUN_INDEX..."
-    kill -9 $WEBOTS_PID $ROS2_PID $LOGGER_PID 2>/dev/null
+    kill -9 $WEBOTS_PID $ROS2_PID 2>/dev/null
     # Ensure all related processes are terminated
     pkill -f "$WEBOTS_EXE" 2>/dev/null
     pkill -f "ros2 launch" 2>/dev/null

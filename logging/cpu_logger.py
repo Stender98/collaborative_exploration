@@ -17,17 +17,21 @@ if args.mode == 'c':
 elif args.mode == 'd':
     mode = 'decentralised'
 
-TARGET_NAME = "swarm" # Target all processes with "swarm" in their command line
+TARGET_NAME = "webots" # Target all processes with "webots" in their command line
 LOG_FILE = os.path.join(current_directory, "logs", mode, str(args.num_robots), str(args.run_count), "cpu_log.csv")
+
+# Ensure the directory exists
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
 print(f"Monitoring processes matching: {TARGET_NAME}")
 print(f"Logging to: {LOG_FILE}")
 
-with open(LOG_FILE, "w") as f:
-    f.write("Time(s), CPU(%), Memory(MB)\n")
-    start = time.time()
+try:
+    with open(LOG_FILE, "w") as f:
+        f.write("Time(s), CPU(%), Memory(MB)\n")
+        f.flush()  # Flush the header immediately
+        start = time.time()
 
-    try:
         while True:
             total_cpu = 0.0
             total_mem = 0.0
@@ -39,8 +43,16 @@ with open(LOG_FILE, "w") as f:
                         total_mem += proc.memory_info().rss / 1024 / 1024  # MB
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     continue
+            
             elapsed = time.time() - start
-            f.write(f"{elapsed:.2f}, {total_cpu:.2f}, {total_mem:.2f}\n")
+            line = f"{elapsed:.2f}, {total_cpu:.2f}, {total_mem:.2f}\n"
+            f.write(line)
+            f.flush()  # Force writing to disk after each measurement
             time.sleep(1)
-    except KeyboardInterrupt:
-        print("CPU logging stopped.")
+            
+except KeyboardInterrupt:
+    print("CPU logging stopped by user.")
+except Exception as e:
+    print(f"Error occurred: {e}")
+finally:
+    print("Logging complete. Data saved to:", LOG_FILE)
