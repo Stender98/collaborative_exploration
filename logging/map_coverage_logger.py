@@ -4,8 +4,7 @@ from nav_msgs.msg import OccupancyGrid
 from rosgraph_msgs.msg import Clock
 import argparse
 import os
-import time
-from datetime import datetime
+from std_msgs.msg import String 
 
 class MapCoverageLogger(Node):
     def __init__(self, mode, num_robots, run_count):
@@ -18,6 +17,8 @@ class MapCoverageLogger(Node):
         self.mode = mode  # 'centralized' or 'decentralized'
         self.num_robots = num_robots
         self.run_count = run_count
+        self.terminated_count = 0
+        self.num_robots = num_robots
 
         # Subscriber to the map topic
         self.map_subscription = self.create_subscription(
@@ -35,6 +36,14 @@ class MapCoverageLogger(Node):
             10
         )
 
+        # Subscriber to the clock topic
+        self.terminated_subscription = self.create_subscription(
+            String,
+            '/terminated',
+            self.terminated_calback,
+            10
+        )
+
         # Create log directory and file
         self.log_dir = f"logs/{self.mode}/{self.num_robots}/{self.run_count}"
         os.makedirs(self.log_dir, exist_ok=True)
@@ -42,13 +51,18 @@ class MapCoverageLogger(Node):
         
         # Write header to log file
         with open(self.log_file, 'w') as f:
-            f.write("Time(s),Coverage(%)\n")
+            f.write("Time(s),Coverage(%), Number of running robots\n")
 
         # Timer to check topic availability every 5 seconds
         self.topic_check_timer = self.create_timer(5.0, self.check_topics)
 
     def map_callback(self, msg):
         self.slam_map = msg
+
+    def terminated_calback(self, msg):
+        """Increment counter when a termination message is received."""
+        self.terminated_count += 1
+        self.get_logger().info(f"Received termination message: {msg.data}. Total terminated robots: {self.terminated_count}")
 
     def clock_callback(self, msg):
         self.sim_time = msg.clock.sec + msg.clock.nanosec / 1e9
@@ -69,7 +83,7 @@ class MapCoverageLogger(Node):
     def log_coverage(self):
         coverage = self.calculate_coverage()
         with open(self.log_file, 'a') as f:
-            f.write(f"{self.sim_time:.1f},{coverage:.2f}\n")
+            f.write(f"{self.sim_time:.1f},{coverage:.2f}, {self.num_robots - self.terminated_count:.0f}\n")
 
     def check_topics(self):
         # Check if /map and /clock topics have publishers
