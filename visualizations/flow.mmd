@@ -1,0 +1,47 @@
+flowchart TD
+    subgraph "EPuckController Node"
+        A[Robot Initialization] --> B[Robot Sensors & Motors Setup]
+        B --> C[ROS2 Publishers/Subscribers Setup]
+        C --> D[Main Control Loop]
+        D --> E{Check Nav2 Activity}
+        E -- "Active" --> F[Use Nav2 Velocity Commands]
+        E -- "Inactive" --> G[No Movement]
+        F --> H[Apply Motor Speeds]
+        G --> H
+        H --> I[Publish Robot State]
+        I --> J[Check for Movement Progress]
+        J -- "Stuck Timeout" --> K[Terminate Robot]
+        J -- "Moving" --> D
+        
+        I --> |"Odometry\nLiDAR Scan\nTF\nClock"| L((ROS2\nTopics))
+    end
+    
+    subgraph "FrontierExploration Node"
+        M[Initialize Exploration] --> N[Setup Nav2 Action Client]
+        N --> O[Subscribe to Map & Frontiers]
+        O --> P{Map Update}
+        P -- "Map Ready" --> Q[Find Frontier]
+        Q --> R{Valid Frontier Found?}
+        R -- Yes --> S[Score Frontiers]
+        S --> T[Select Best Frontier]
+        T --> U[Send Goal to Nav2]
+        U --> V[Publish Assigned Frontier]
+        U --> W{Goal Response}
+        W -- "Accepted" --> X[Wait for Result]
+        W -- "Rejected" --> Y[Cooldown]
+        X --> Z{Goal Status}
+        Z -- "Succeeded/Failed" --> Y
+        Y --> P
+        
+        V --> |"frontier"| AA((Shared\nFrontier\nTopic))
+        AA --> BB[Store Other Robots' Frontiers]
+        BB --> S
+        
+        CC[Check Current Goal Timer] --> DD{Is Current Goal\nStill a Frontier?}
+        DD -- No --> EE[Cancel Goal]
+        EE --> P
+    end
+    
+    L -- "Map/Scan" --> P
+    L -- "Odometry" --> P
+    L <-- "cmd_vel" --> F
