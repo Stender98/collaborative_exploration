@@ -11,7 +11,7 @@ from rosgraph_msgs.msg import Clock
 import tf_transformations
 import tf2_ros
 from nav2_msgs.action import NavigateToPose
-from controller import Robot, GPS
+from controller import Robot
 import numpy as np
 from swarm_frontier import FrontierExploration
 
