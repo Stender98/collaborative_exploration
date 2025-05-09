@@ -18,6 +18,7 @@ setup(
         (os.path.join('share', package_name, 'scripts'), ['scripts/swarm_nav_controller.py']),
         (os.path.join('share', package_name, 'scripts'), ['scripts/swarm_frontier.py']),
         (os.path.join('share', package_name, 'scripts'), ['scripts/swarm_decentralised.py']),
+        (os.path.join('share', package_name, 'scripts'), ['scripts/swarm_obstacle_avoidance.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

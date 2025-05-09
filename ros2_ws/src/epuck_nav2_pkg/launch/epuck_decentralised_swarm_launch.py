@@ -65,7 +65,7 @@ def generate_launch_description():
 
 def launch_robots(context, *args, **kwargs):
     repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../epuck_nav2_pkg'))
-    controller_path = os.path.join(repo_dir, 'scripts/swarm_decentralised.py')
+    controller_path = os.path.join(repo_dir, 'scripts/swarm_obstacle_avoidance.py')
     assert os.path.exists(controller_path), f"Missing controller script: {controller_path}"
     
     # Get robot count and webots controller path from LaunchConfigurations
