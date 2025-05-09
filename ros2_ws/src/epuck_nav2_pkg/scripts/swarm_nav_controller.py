@@ -11,7 +11,7 @@ from rosgraph_msgs.msg import Clock
 import tf_transformations
 import tf2_ros
 from nav2_msgs.action import NavigateToPose
-from controller import Robot
+from controller import Robot, GPS
 import numpy as np
 from swarm_frontier import FrontierExploration
 
@@ -26,7 +26,7 @@ DEBUG = False
 ENABLE_LIDAR = True
 ENABLE_CAMERA = False
 ENABLE_DIST = False
-STUCK_TIMEOUT = 30.0  # 1 minute timeout for no progress
+STUCK_TIMEOUT = 60.0  # 1 minute timeout for no progress
 MOVEMENT_THRESHOLD = 0.05  # Minimum distance (meters) to consider as progress
 
 class EPuckController(Node):
@@ -39,6 +39,13 @@ class EPuckController(Node):
         global TIME_STEP
         TIME_STEP = int(self.robot.getBasicTimeStep())
         print("Time step is: ", TIME_STEP)
+
+        # Initialize GPS
+        self.gps = self.robot.getGPS('gps')
+        if self.gps is None:
+            print("Error: GPS device not found!")
+        else:
+            self.gps.enable(TIME_STEP)
 
         # Robot state
         self.x = 0.0
@@ -167,10 +174,20 @@ class EPuckController(Node):
         current_left_pos = self.left_sensor.getValue()
         current_right_pos = self.right_sensor.getValue()
 
+        # Read GPS coordinates
+        gps_values = self.gps.getValues()
+        if gps_values and not any(np.isnan(gps_values)):
+            gps_x, gps_y = gps_values[0], gps_values[1]  # Global X, Y coordinates
+        else:
+            gps_x, gps_y = self.last_x, self.last_y  # Fallback to last position
+            self.get_logger().warn("Invalid GPS data, using last known position.")
+
         if self.first_step:
             self.prev_left_pos = current_left_pos
             self.prev_right_pos = current_right_pos
             self.first_step = False
+            self.last_x = gps_x
+            self.last_y = gps_y
             return
 
         delta_left = current_left_pos - self.prev_left_pos
@@ -196,22 +213,21 @@ class EPuckController(Node):
         self.y += dy if not np.isnan(dy) else 0.0
         self.theta += delta_theta if not np.isnan(delta_theta) else 0.0
 
-        # Check for movement progress
-        distance_moved = np.sqrt((self.x - self.last_x) ** 2 + (self.y - self.last_y) ** 2)
+        # Check movement using GPS
+        distance_moved = np.sqrt((gps_x - self.last_x) ** 2 + (gps_y - self.last_y) ** 2)
         if distance_moved > MOVEMENT_THRESHOLD:
             self.last_moved_time = current_time
-            self.last_x = self.x
-            self.last_y = self.y
+            self.last_x = gps_x
+            self.last_y = gps_y
 
-        # Check if stuck for too long
+        # Check if stuck
         if current_time - self.last_moved_time > STUCK_TIMEOUT:
             self.get_logger().warn(f"Robot {self.robot.getName()} stuck for over {STUCK_TIMEOUT} seconds, terminating.")
-            # Publish termination message
             term_msg = String()
             term_msg.data = f"Robot {self.robot.getName()} terminated due to no progress."
             self.terminated_publisher.publish(term_msg)
             self.cleanup()
-            return 
+            return
 
         # Odometry message
         odom_msg = Odometry()
