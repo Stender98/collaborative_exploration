@@ -51,7 +51,7 @@ class MapCoverageLogger(Node):
         
         # Write header to log file
         with open(self.log_file, 'w') as f:
-            f.write("Time(s),Coverage(%), Number of running robots\n")
+            f.write("Time(s),Coverage(%),Number of running robots\n")
 
         # Timer to check topic availability every 5 seconds
         self.topic_check_timer = self.create_timer(5.0, self.check_topics)
