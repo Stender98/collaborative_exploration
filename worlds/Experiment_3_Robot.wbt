@@ -25,7 +25,7 @@ E-puck {
   name "robot0"
   controller "<extern>"
   turretSlot [
- GPS {
+    GPS {
     }
     RobotisLds01 {
     }
@@ -36,7 +36,7 @@ E-puck {
   name "robot1"
   controller "<extern>"
   turretSlot [
- GPS {
+    GPS {
     }
     RobotisLds01 {
     }
@@ -47,7 +47,7 @@ E-puck {
   name "robot2"
   controller "<extern>"
   turretSlot [
- GPS {
+    GPS {
     }
     RobotisLds01 {
     }
