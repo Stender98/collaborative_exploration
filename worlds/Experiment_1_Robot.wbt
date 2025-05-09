@@ -21,10 +21,11 @@ RectangleArena {
   floorSize 10 10
 }
 E-puck {
-  translation 0 0 0
   name "robot0"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]

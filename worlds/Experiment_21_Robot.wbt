@@ -25,6 +25,8 @@ E-puck {
   name "robot0"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -34,6 +36,8 @@ E-puck {
   name "robot1"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -43,6 +47,8 @@ E-puck {
   name "robot2"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -52,6 +58,8 @@ E-puck {
   name "robot3"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -61,6 +69,8 @@ E-puck {
   name "robot4"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -70,6 +80,8 @@ E-puck {
   name "robot5"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -79,6 +91,8 @@ E-puck {
   name "robot6"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -88,6 +102,8 @@ E-puck {
   name "robot7"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -97,6 +113,8 @@ E-puck {
   name "robot8"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -106,6 +124,8 @@ E-puck {
   name "robot9"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -115,6 +135,8 @@ E-puck {
   name "robot10"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -124,6 +146,8 @@ E-puck {
   name "robot11"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -133,6 +157,8 @@ E-puck {
   name "robot12"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -142,6 +168,8 @@ E-puck {
   name "robot13"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -151,6 +179,8 @@ E-puck {
   name "robot14"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -160,6 +190,8 @@ E-puck {
   name "robot15"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -169,6 +201,8 @@ E-puck {
   name "robot16"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -178,6 +212,8 @@ E-puck {
   name "robot17"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -187,6 +223,8 @@ E-puck {
   name "robot18"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -196,6 +234,8 @@ E-puck {
   name "robot19"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
@@ -205,6 +245,8 @@ E-puck {
   name "robot20"
   controller "<extern>"
   turretSlot [
+    GPS {
+    }
     RobotisLds01 {
     }
   ]
