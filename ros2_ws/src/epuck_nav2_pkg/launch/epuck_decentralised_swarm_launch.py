@@ -59,7 +59,7 @@ def generate_launch_description():
         name='rviz2'
     )
 
-    ld.add_action(rviz_launch)
+    #ld.add_action(rviz_launch)
 
     return ld
 

@@ -158,7 +158,7 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
 
     # Step 1: Launch Webots with the specified world
     echo "Launching Webots with world: $WORLD_PATH..."
-    $TERMINAL --tab --title="Webots (Run $RUN_INDEX)" -- bash -c "$WEBOTS_EXE $WORLD_PATH; exec bash" &
+    $TERMINAL --tab --title="Webots (Run $RUN_INDEX)" -- bash -c "$WEBOTS_EXE --no-rendering --minimize $WORLD_PATH; exec bash" &
     WEBOTS_PID=$!
 
     # Give Webots a moment to start

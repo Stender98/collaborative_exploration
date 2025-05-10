@@ -93,14 +93,14 @@ def generate_launch_description():
         output='screen',
         name='rviz2'
     )
-
+    '''
     ld.add_action(TimerAction(
         period=8.0,
         actions=[
             LogInfo(msg="Launching RViz2..."),
             rviz_launch
         ]
-    ))
+    ))'''
 
     return ld
 
