@@ -18,8 +18,6 @@ def generate_launch_description():
     print("Generating launch description...")
 
     # Define paths
-    repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../epuck_nav2_pkg'))
-    controller_path = os.path.join(repo_dir, 'scripts/swarm_nav_controller.py')
     config_dir = os.path.join(get_package_share_directory('epuck_nav2_pkg'), 'config')
     rviz_config_path = os.path.join(config_dir, 'nav2_rviz_config.rviz')
 
@@ -34,9 +32,6 @@ def generate_launch_description():
         default_value='2',
         description='Number of robots to launch'
     )
-
-    # Assert paths to help with debugging
-    assert os.path.exists(controller_path), f"Missing controller script: {controller_path}"
 
     ld = LaunchDescription()
 
@@ -70,8 +65,9 @@ def generate_launch_description():
 
 def launch_robots(context, *args, **kwargs):
     repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../epuck_nav2_pkg'))
-    controller_path = os.path.join(repo_dir, 'scripts/swarm_decentralised.py')
-
+    controller_path = os.path.join(repo_dir, 'scripts/swarm_obstacle_avoidance.py')
+    assert os.path.exists(controller_path), f"Missing controller script: {controller_path}"
+    
     # Get robot count and webots controller path from LaunchConfigurations
     num_robots = int(LaunchConfiguration('robot_count').perform(context))
     webots_controller = LaunchConfiguration('webots_controller').perform(context)
