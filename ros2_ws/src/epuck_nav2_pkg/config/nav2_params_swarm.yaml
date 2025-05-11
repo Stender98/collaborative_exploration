@@ -331,14 +331,3 @@ collision_monitor:
             min_height: 0.0
             max_height: 0.15
             enabled: True
-
-loopback_simulator:
-    ros__parameters:
-        use_sim_time: True
-        base_frame_id: <robot_frame_namespace>/base_footprint # Already correct
-        odom_frame_id: <robot_frame_namespace>/odom
-        map_frame_id: 'map'
-        scan_frame_id: <robot_frame_namespace>/laser # Changed to match controller’s LIDAR frame
-        update_duration: 0.02
-        tf_topic: '/tf' # If supported
-        tf_static_topic: '/tf_static'
