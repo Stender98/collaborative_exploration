@@ -185,7 +185,7 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     echo "Waiting for /map and /clock topics to become available..."
     source "$ROS_SETUP"
     source "$WORKSPACE_SETUP"
-    TIMEOUT=30
+    TIMEOUT=60  # Increased timeout to 60 seconds
     START_TIME=$(date +%s)
     while true; do
         MAP_TOPIC=$(ros2 topic list | grep -w "/map" || true)
@@ -198,7 +198,7 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
         ELAPSED=$((CURRENT_TIME - START_TIME))
         if [ $ELAPSED -ge $TIMEOUT ]; then
             echo "Error: Timeout waiting for /map and /clock topics."
-            kill -9 $WEBOTS_PID $ROS2_PID 2>/dev/null
+            kill -9 $WEBOTS_PID $ROS2_PID $CPU_MONITOR_PID 2>/dev/null
             exit 1
         fi
         sleep 1
@@ -209,11 +209,35 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     $TERMINAL --tab --title="Map Coverage Logger (Run $RUN_INDEX)" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && python3 $LOGGING_SCRIPT $MODE_INPUT $NUM_ROBOTS $RUN_INDEX; exec bash" &
     LOGGER_PID=$!
 
-    # Step 5: Run for 120 seconds
-    echo "Running simulation for 120 seconds..."
-    sleep 120
+    # Step 5: Run for exactly 122 seconds (giving 2 seconds buffer for the logger to complete)
+    echo "Running simulation for 122 seconds (120s measurement + 2s buffer)..."
+    sleep 122
 
-    # Step 6: Stop cpu monitor, save map and run evaluation scripts
+    # Step 6: Check if the logger has finished and ensure the CSV file has 120 entries
+    LOG_FILE="$REPO_DIR/logs/$MODE/$NUM_ROBOTS/$RUN_INDEX/coverage.csv"
+    WAIT_COUNT=0
+    MAX_WAIT=30 # Wait up to 30 seconds for the logger to complete
+    
+    echo "Checking if logger has completed..."
+    while [ ! -f "$LOG_FILE" ] || [ $(grep -c "^" "$LOG_FILE") -lt 121 ]; do  # 121 includes header line
+        if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
+            echo "Logger didn't complete in time. Will proceed with data collection."
+            break
+        fi
+        echo "Waiting for logger to complete... ($(grep -c "^" "$LOG_FILE" 2>/dev/null || echo "0") rows)"
+        sleep 1
+        WAIT_COUNT=$((WAIT_COUNT+1))
+    done
+
+    # Count the number of rows in the CSV file
+    if [ -f "$LOG_FILE" ]; then
+        NUM_ROWS=$(grep -c "^" "$LOG_FILE")
+        echo "CSV file contains $NUM_ROWS rows (including header)"
+    else
+        echo "Warning: CSV file not found at $LOG_FILE"
+    fi
+
+    # Step 7: Stop cpu monitor, save map and run evaluation scripts
     echo "Stopping CPU load monitor..."
     kill -9 $CPU_MONITOR_PID $LOGGER_PID 2>/dev/null
     # Ensure the CPU monitor is terminated
@@ -232,17 +256,43 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     wait $EVAL_PID
     sleep 2
     # Ensure the evaluation script is terminated
-    kill -9 $EVAL_PID 2>/dev/null
+    pkill -f "crop.py" 2>/dev/null
     pkill -f "map_evaluation.py" 2>/dev/null
     pkill -f "cpu_plot.py" 2>/dev/null
 
-    # Step 7: Kill all processes
+    # Step 8: Kill all processes
     echo "Terminating processes for run $RUN_INDEX..."
     kill -9 $WEBOTS_PID $ROS2_PID 2>/dev/null
     # Ensure all related processes are terminated
     pkill -f "$WEBOTS_EXE" 2>/dev/null
     pkill -f "ros2 launch" 2>/dev/null
     pkill -f "$LOGGING_SCRIPT" 2>/dev/null
+
+    # Check if coverage file has the correct number of entries
+    if [ -f "$LOG_FILE" ]; then
+        NUM_ROWS=$(grep -c "^" "$LOG_FILE")
+        if [ $NUM_ROWS -lt 121 ]; then  # 121 includes header line
+            echo "Warning: Coverage file has only $NUM_ROWS rows (including header). Fixing..."
+            # Add missing entries
+            MISSING=$((121 - NUM_ROWS))
+            LAST_LINE=$(tail -n 1 "$LOG_FILE")
+            TIME=$(echo $LAST_LINE | cut -d',' -f1)
+            COVERAGE=$(echo $LAST_LINE | cut -d',' -f2)
+            RUNNING_ROBOTS=$(echo $LAST_LINE | cut -d',' -f3)
+            
+            for ((i=1; i<=$MISSING; i++)); do
+                NEW_TIME=$(echo "$TIME + $i" | bc)
+                echo "$NEW_TIME,$COVERAGE,$RUNNING_ROBOTS" >> "$LOG_FILE"
+            done
+            echo "Added $MISSING missing entries to coverage file."
+        elif [ $NUM_ROWS -gt 121 ]; then
+            echo "Warning: Coverage file has $NUM_ROWS rows (including header). Trimming excess..."
+            head -n 121 "$LOG_FILE" > "$LOG_FILE.temp"
+            mv "$LOG_FILE.temp" "$LOG_FILE"
+        else
+            echo "Coverage file has correct number of rows: $NUM_ROWS (including header)"
+        fi
+    fi
 
     echo "Run $RUN_INDEX completed."
     sleep 10 # Brief pause before starting next run

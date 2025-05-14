@@ -4,6 +4,7 @@ from nav_msgs.msg import OccupancyGrid
 from rosgraph_msgs.msg import Clock
 import argparse
 import os
+import time
 from std_msgs.msg import String 
 
 class MapCoverageLogger(Node):
@@ -14,11 +15,12 @@ class MapCoverageLogger(Node):
         self.slam_map = None
         self.sim_time = 0.0
         self.last_log_time = 0.0
-        self.mode = mode  # 'centralized' or 'decentralized'
+        self.mode = mode  # 'centralised' or 'decentralised'
         self.num_robots = num_robots
         self.run_count = run_count
         self.terminated_count = 0
-        self.num_robots = num_robots
+        self.start_real_time = time.time()
+        self.max_duration_seconds = 120  # Hard limit of 120 seconds of real time
 
         # Subscriber to the map topic
         self.map_subscription = self.create_subscription(
@@ -36,11 +38,11 @@ class MapCoverageLogger(Node):
             10
         )
 
-        # Subscriber to the clock topic
+        # Subscriber to the terminated topic
         self.terminated_subscription = self.create_subscription(
             String,
             '/terminated',
-            self.terminated_calback,
+            self.terminated_callback,
             10
         )
 
@@ -53,23 +55,26 @@ class MapCoverageLogger(Node):
         with open(self.log_file, 'w') as f:
             f.write("Time(s),Coverage(%),Number of running robots\n")
 
-        # Timer to check topic availability every 5 seconds
-        self.topic_check_timer = self.create_timer(5.0, self.check_topics)
+        # Timer to log data every second (regardless of sim time)
+        self.log_timer = self.create_timer(1.0, self.timed_log_coverage)
+        
+        # Timer to check if we've exceeded our max duration
+        self.duration_check_timer = self.create_timer(1.0, self.check_duration)
+
+        # Flag to ensure we always have exactly 120 entries
+        self.entries_count = 0
+        self.get_logger().info(f'Map Coverage Logger started. Mode: {mode}, Robots: {num_robots}, Run: {run_count}')
 
     def map_callback(self, msg):
         self.slam_map = msg
 
-    def terminated_calback(self, msg):
+    def terminated_callback(self, msg):
         """Increment counter when a termination message is received."""
         self.terminated_count += 1
         self.get_logger().info(f"Received termination message: {msg.data}. Total terminated robots: {self.terminated_count}")
 
     def clock_callback(self, msg):
         self.sim_time = msg.clock.sec + msg.clock.nanosec / 1e9
-        # Log coverage every second
-        if self.sim_time >= self.last_log_time + 1.0:
-            self.log_coverage()
-            self.last_log_time = self.sim_time
 
     def calculate_coverage(self):
         if self.slam_map is None:
@@ -80,18 +85,39 @@ class MapCoverageLogger(Node):
         coverage_percent = (explored_cells / total_cells) * 100 if total_cells > 0 else 0.0
         return coverage_percent
 
-    def log_coverage(self):
+    def timed_log_coverage(self):
+        """Log coverage on a regular real-time interval"""
         coverage = self.calculate_coverage()
-        with open(self.log_file, 'a') as f:
-            f.write(f"{self.sim_time:.1f},{coverage:.2f}, {self.num_robots - self.terminated_count:.0f}\n")
-
-    def check_topics(self):
-        # Check if /map and /clock topics have publishers
-        map_publishers = self.get_publishers_info_by_topic('/map')
-        clock_publishers = self.get_publishers_info_by_topic('/clock')
+        elapsed_time = self.entries_count + 1  # Ensure time is sequential
         
-        if not map_publishers or not clock_publishers:
-            self.get_logger().info('One or more topics (/map or /clock) are no longer available. Shutting down...')
+        with open(self.log_file, 'a') as f:
+            f.write(f"{elapsed_time:.1f},{coverage:.2f},{self.num_robots - self.terminated_count:.0f}\n")
+        
+        self.entries_count += 1
+        self.get_logger().debug(f"Logged entry {self.entries_count}: time={elapsed_time:.1f}, coverage={coverage:.2f}%")
+        
+        # If we've logged exactly 120 entries, shut down
+        if self.entries_count >= 120:
+            self.get_logger().info('Completed 120 logging entries. Shutting down...')
+            self.destroy_node()
+            rclpy.shutdown()
+
+    def check_duration(self):
+        """Check if we've exceeded the maximum run time"""
+        elapsed = time.time() - self.start_real_time
+        if elapsed > self.max_duration_seconds:
+            # Ensure we have exactly 120 entries before shutting down
+            entries_needed = 120 - self.entries_count
+            if entries_needed > 0:
+                self.get_logger().info(f'Time limit reached with {self.entries_count} entries. Adding {entries_needed} more entries...')
+                coverage = self.calculate_coverage()
+                with open(self.log_file, 'a') as f:
+                    for i in range(entries_needed):
+                        elapsed_time = self.entries_count + 1
+                        f.write(f"{elapsed_time:.1f},{coverage:.2f},{self.num_robots - self.terminated_count:.0f}\n")
+                        self.entries_count += 1
+            
+            self.get_logger().info(f'Maximum duration ({self.max_duration_seconds}s) reached. Shutting down with {self.entries_count} entries.')
             self.destroy_node()
             rclpy.shutdown()
 
@@ -119,6 +145,18 @@ def main():
     except Exception as e:
         map_logger.get_logger().error(f'Error occurred: {str(e)}')
     finally:
+        # Ensure we have exactly 120 entries before shutting down
+        if hasattr(map_logger, 'entries_count') and not map_logger.destroyed:
+            entries_needed = 120 - map_logger.entries_count
+            if entries_needed > 0:
+                map_logger.get_logger().info(f'Shutting down with {map_logger.entries_count} entries. Adding {entries_needed} more entries...')
+                coverage = map_logger.calculate_coverage() if hasattr(map_logger, 'calculate_coverage') else 0.0
+                with open(map_logger.log_file, 'a') as f:
+                    for i in range(entries_needed):
+                        elapsed_time = map_logger.entries_count + 1
+                        f.write(f"{elapsed_time:.1f},{coverage:.2f},{map_logger.num_robots - map_logger.terminated_count:.0f}\n")
+                        map_logger.entries_count += 1
+                
         if not map_logger.destroyed:
             map_logger.destroy_node()
         if rclpy.ok():

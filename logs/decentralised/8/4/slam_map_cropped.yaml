@@ -1,7 +1,0 @@
-image: /home/cesnes/MasterThesis/logging/../logs/decentralised/8/4/slam_map_cropped.pgm
-mode: trinary
-resolution: 0.05
-origin: [-3.87, -4.03, 0]
-negate: 0
-occupied_thresh: 0.65
-free_thresh: 0.25
