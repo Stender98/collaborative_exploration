@@ -17,7 +17,7 @@ if args.mode == 'c':
 elif args.mode == 'd':
     mode = 'decentralised'
 
-TARGET_NAME = "swarm" # Target all processes with "webots" in their command line
+TARGET_NAME = "swarm" # Target all processes with "swarm" in their command line
 LOG_FILE = os.path.join(current_directory, "logs", mode, str(args.num_robots), str(args.run_count), "cpu_log.csv")
 
 # Ensure the directory exists
@@ -28,24 +28,33 @@ print(f"Logging to: {LOG_FILE}")
 
 try:
     with open(LOG_FILE, "w") as f:
-        f.write("Time(s), CPU(%), Memory(MB)\n")
+        # Updated header to include total system CPU
+        f.write("Time(s), System_CPU(%), Target_CPU(%), Target_Memory(MB), System_Memory_Used(MB), System_Memory_Total(MB)\n")
         f.flush()  # Flush the header immediately
         start = time.time()
 
         while True:
-            total_cpu = 0.0
-            total_mem = 0.0
+            # Get system-wide CPU and memory usage
+            system_cpu = psutil.cpu_percent(interval=0.1)
+            system_memory = psutil.virtual_memory()
+            system_memory_used = system_memory.used / 1024 / 1024  # MB
+            system_memory_total = system_memory.total / 1024 / 1024  # MB
+            
+            # Get target process CPU and memory usage
+            target_cpu = 0.0
+            target_mem = 0.0
             for proc in psutil.process_iter(['name', 'cmdline', 'cpu_percent', 'memory_info']):
                 try:
                     cmdline = proc.info.get('cmdline')
                     if cmdline and isinstance(cmdline, list) and TARGET_NAME in ' '.join(cmdline):
-                        total_cpu += proc.cpu_percent(0.1)
-                        total_mem += proc.memory_info().rss / 1024 / 1024  # MB
+                        target_cpu += proc.cpu_percent(0.1)
+                        target_mem += proc.memory_info().rss / 1024 / 1024  # MB
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     continue
             
             elapsed = time.time() - start
-            line = f"{elapsed:.2f}, {total_cpu:.2f}, {total_mem:.2f}\n"
+            # Updated line to include all CPU and memory metrics
+            line = f"{elapsed:.2f}, {system_cpu:.2f}, {target_cpu:.2f}, {target_mem:.2f}, {system_memory_used:.2f}, {system_memory_total:.2f}\n"
             f.write(line)
             f.flush()  # Force writing to disk after each measurement
             time.sleep(1)
