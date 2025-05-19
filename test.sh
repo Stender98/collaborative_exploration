@@ -152,9 +152,34 @@ fi
 # Terminal command
 TERMINAL="gnome-terminal"
 
+# Function to check for coverage completion
+check_coverage_completion() {
+    local max_attempts=10
+    local attempt=1
+    local sleep_time=2
+    
+    source "$ROS_SETUP"
+    source "$WORKSPACE_SETUP"
+    
+    while [ $attempt -le $max_attempts ]; do
+        echo "Attempt $attempt/$max_attempts: Checking for coverage completion..."
+        COVERAGE_COMPLETE=$(ros2 topic echo --once --timeout 3 /coverage_complete 2>/dev/null | grep "data: true" || true)
+        if [ -n "$COVERAGE_COMPLETE" ]; then
+            echo "Coverage completion message received!"
+            return 0
+        fi
+        sleep $sleep_time
+        ((attempt++))
+    done
+    return 1
+}
+
 # Loop for the specified number of runs
 for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     echo "Starting run $RUN_INDEX of $RUN_COUNT..."
+
+    # Create log directories for this run
+    mkdir -p "$REPO_DIR/logs/$MODE/$NUM_ROBOTS/$RUN_INDEX"
 
     # Step 1: Launch Webots with the specified world
     echo "Launching Webots with world: $WORLD_PATH..."
@@ -209,27 +234,51 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     $TERMINAL --tab --title="Map Coverage Logger (Run $RUN_INDEX)" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && python3 $LOGGING_SCRIPT $MODE_INPUT $NUM_ROBOTS $RUN_INDEX; exec bash" &
     LOGGER_PID=$!
 
+    # Give the logger some time to initialize
+    sleep 5
+
     # Step 5: Wait for 95% map coverage
     echo "Waiting for 95% map coverage..."
     source "$ROS_SETUP"
     source "$WORKSPACE_SETUP"
     TIMEOUT=1800  # 30 minutes timeout to prevent infinite loops
     START_TIME=$(date +%s)
-    while true; do
-        # Check for /coverage_complete topic message
-        COVERAGE_COMPLETE=$(ros2 topic echo --once --timeout 1 /coverage_complete 2>/dev/null | grep "data: true" || true)
-        if [ -n "$COVERAGE_COMPLETE" ]; then
-            echo "95% map coverage reached."
-            break
-        fi
+    COVERAGE_FOUND=false
+    
+    while [ "$COVERAGE_FOUND" = false ]; do
         CURRENT_TIME=$(date +%s)
         ELAPSED=$((CURRENT_TIME - START_TIME))
+        
         if [ $ELAPSED -ge $TIMEOUT ]; then
             echo "Error: Timeout waiting for 95% map coverage."
             kill -9 $WEBOTS_PID $ROS2_PID $LOGGER_PID $CPU_MONITOR_PID 2>/dev/null
             exit 1
         fi
-        sleep 1
+        
+        # Check for coverage completion using the function
+        if check_coverage_completion; then
+            COVERAGE_FOUND=true
+            echo "95% map coverage confirmed."
+            break
+        fi
+        
+        # Check if the logger process is still running
+        if ! ps -p $LOGGER_PID > /dev/null; then
+            echo "Warning: Logger process ended unexpectedly. Checking coverage status..."
+            # Try to check coverage status
+            if check_coverage_completion; then
+                COVERAGE_FOUND=true
+                echo "95% map coverage confirmed after logger exit."
+                break
+            else
+                echo "Error: Logger process ended but coverage not reached."
+                kill -9 $WEBOTS_PID $ROS2_PID $CPU_MONITOR_PID 2>/dev/null
+                exit 1
+            fi
+        fi
+        
+        # Wait a bit before checking again
+        sleep 5
     done
 
     # Step 6: Stop cpu monitor, save map and run evaluation scripts

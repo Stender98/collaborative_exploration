@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid
 from rosgraph_msgs.msg import Clock
-from std_msgs.msg import Bool  # NEW: For publishing completion
+from std_msgs.msg import Bool  # For publishing completion
 import argparse
 import os
 from std_msgs.msg import String 
@@ -19,8 +19,8 @@ class MapCoverageLogger(Node):
         self.num_robots = num_robots
         self.run_count = run_count
         self.terminated_count = 0
-        self.coverage_threshold = 95.0  # NEW: 95% coverage threshold
-        self.coverage_reached = False    # NEW: Flag to track completion
+        self.coverage_threshold = 95.0  # 95% coverage threshold
+        self.coverage_reached = False   # Flag to track completion
 
         # Subscriber to the map topic
         self.map_subscription = self.create_subscription(
@@ -46,7 +46,7 @@ class MapCoverageLogger(Node):
             10
         )
 
-        # NEW: Publisher for coverage completion
+        # Publisher for coverage completion
         self.coverage_publisher = self.create_publisher(
             Bool,
             '/coverage_complete',
@@ -64,6 +64,9 @@ class MapCoverageLogger(Node):
 
         # Timer to check topic availability every 5 seconds
         self.topic_check_timer = self.create_timer(5.0, self.check_topics)
+        
+        # Timer to continuously publish coverage complete status (if reached)
+        self.coverage_timer = self.create_timer(1.0, self.publish_coverage_status)
 
     def map_callback(self, msg):
         self.slam_map = msg
@@ -93,21 +96,24 @@ class MapCoverageLogger(Node):
         with open(self.log_file, 'a') as f:
             f.write(f"{self.sim_time:.1f},{coverage:.2f},{self.num_robots - self.terminated_count:.0f}\n")
         
-        # NEW: Check if 95% coverage is reached
+        # Check if coverage threshold is reached
         if coverage >= self.coverage_threshold and not self.coverage_reached:
             self.get_logger().info(f"Reached {self.coverage_threshold}% map coverage at time {self.sim_time:.1f}s")
-            # Publish completion message
-            msg = Bool()
-            msg.data = True
-            self.coverage_publisher.publish(msg)
             self.coverage_reached = True
-            # Shut down the node after a short delay to ensure message is sent
-            self.create_timer(10.0, self.shutdown_node)
+            
+            # Publish completion message immediately
+            self.publish_coverage_message()
 
-    def shutdown_node(self):
-        self.get_logger().info("Shutting down map coverage logger...")
-        self.destroy_node()
-        rclpy.shutdown()
+    def publish_coverage_message(self):
+        msg = Bool()
+        msg.data = True
+        self.coverage_publisher.publish(msg)
+        self.get_logger().info("Published coverage complete message")
+
+    def publish_coverage_status(self):
+        # This will continuously publish the coverage status once reached
+        if self.coverage_reached:
+            self.publish_coverage_message()
 
     def check_topics(self):
         map_publishers = self.get_publishers_info_by_topic('/map')
@@ -136,8 +142,7 @@ def main():
     except Exception as e:
         map_logger.get_logger().error(f'Error occurred: {str(e)}')
     finally:
-        if not map_logger.coverage_reached:
-            map_logger.destroy_node()
+        map_logger.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
 
