@@ -209,9 +209,28 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     $TERMINAL --tab --title="Map Coverage Logger (Run $RUN_INDEX)" -- bash -c "source $ROS_SETUP && source $WORKSPACE_SETUP && python3 $LOGGING_SCRIPT $MODE_INPUT $NUM_ROBOTS $RUN_INDEX; exec bash" &
     LOGGER_PID=$!
 
-    # Step 5: Run for 120 seconds
-    echo "Running simulation for 120 seconds..."
-    sleep 120
+    # Step 5: Wait for 95% map coverage
+    echo "Waiting for 95% map coverage..."
+    source "$ROS_SETUP"
+    source "$WORKSPACE_SETUP"
+    TIMEOUT=1800  # 30 minutes timeout to prevent infinite loops
+    START_TIME=$(date +%s)
+    while true; do
+        # Check for /coverage_complete topic message
+        COVERAGE_COMPLETE=$(ros2 topic echo --once --timeout 1 /coverage_complete 2>/dev/null | grep "data: true" || true)
+        if [ -n "$COVERAGE_COMPLETE" ]; then
+            echo "95% map coverage reached."
+            break
+        fi
+        CURRENT_TIME=$(date +%s)
+        ELAPSED=$((CURRENT_TIME - START_TIME))
+        if [ $ELAPSED -ge $TIMEOUT ]; then
+            echo "Error: Timeout waiting for 95% map coverage."
+            kill -9 $WEBOTS_PID $ROS2_PID $LOGGER_PID $CPU_MONITOR_PID 2>/dev/null
+            exit 1
+        fi
+        sleep 1
+    done
 
     # Step 6: Stop cpu monitor, save map and run evaluation scripts
     echo "Stopping CPU load monitor..."
