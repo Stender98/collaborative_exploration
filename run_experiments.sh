@@ -4,10 +4,10 @@
 # controllers and robot counts with 10 runs each
 
 # Define an array of robot counts
-ROBOT_COUNTS=(5 8 13)
+ROBOT_COUNTS=(8 13)
 
 # Define controller modes
-CONTROLLER_MODES=("d" "c")
+CONTROLLER_MODES=("d")
 
 # Number of runs for each configuration
 NUM_RUNS=3
