@@ -7,7 +7,7 @@
 ROBOT_COUNTS=(1 2 3 5 8 13 21)
 
 # Define controller modes
-CONTROLLER_MODES=("d" "c")
+CONTROLLER_MODES=("c")
 
 # Number of runs for each configuration
 NUM_RUNS=10
