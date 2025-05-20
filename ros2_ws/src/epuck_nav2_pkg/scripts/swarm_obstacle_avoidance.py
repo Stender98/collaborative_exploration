@@ -46,6 +46,7 @@ class EPuckController(Node):
         self.last_moved_time = self.robot.getTime()
         self.last_x = self.x
         self.last_y = self.y
+        self.terminated = False
 
         # Motors
         self.left_motor = self.robot.getDevice("left wheel motor")
@@ -171,7 +172,7 @@ class EPuckController(Node):
             term_msg = String()
             term_msg.data = f"Robot {self.robot.getName()} terminated due to no progress."
             self.terminated_publisher.publish(term_msg)
-            self.cleanup()
+            self.terminated = True
             return 
 
 
@@ -320,6 +321,15 @@ class EPuckController(Node):
                     left_speed, right_speed = self.random_walk()
                 self.set_speed(left_speed, right_speed)
                 executor.spin_once(timeout_sec=0.01)
+
+                if self.terminated:
+                    while True:
+                        clock_now = self.get_clock().now().to_msg()  # Use current ROS time after override
+                        self.publish_clock(clock_now)
+                        self.set_speed(0, 0)
+                        executor.spin_once(timeout_sec=TIME_STEP / 1000.0)
+                        if self.robot.step(TIME_STEP) == -1:
+                            break
         
         except KeyboardInterrupt:
             self.get_logger().info("Controller interrupted, stopping the robot.")
