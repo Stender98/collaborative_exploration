@@ -1,8 +1,8 @@
 Metric,Value
-mse,0.1610
-ssim,0.3695
-accuracy,0.8652
-precision,0.6122
-recall,0.2976
-f1_score,0.4005
-iou,0.2504
+mse,0.2348
+ssim,0.2251
+accuracy,0.8006
+precision,0.1957
+recall,0.1023
+f1_score,0.1343
+iou,0.0720
