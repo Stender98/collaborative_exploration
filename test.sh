@@ -242,37 +242,23 @@ for ((RUN_INDEX=1; RUN_INDEX<=RUN_COUNT; RUN_INDEX++)); do
     while [ "$COVERAGE_FOUND" = false ]; do
         CURRENT_TIME=$(date +%s)
         ELAPSED=$((CURRENT_TIME - START_TIME))
-        
+        echo "Elapsed time: $ELAPSED seconds"
         if [ $ELAPSED -ge $TIMEOUT ]; then
             echo "Error: Timeout waiting for 95% map coverage."
             kill -9 $WEBOTS_PID $ROS2_PID $LOGGER_PID $CPU_MONITOR_PID 2>/dev/null
-            exit 1
-        fi
-        
-        # Check for coverage completion using the function
-        if check_coverage_completion; then
-            COVERAGE_FOUND=true
-            echo "95% map coverage confirmed."
             break
         fi
         
-        # Check if the logger process is still running
-        if ! ps -p $LOGGER_PID > /dev/null; then
-            echo "Warning: Logger process ended unexpectedly. Checking coverage status..."
-            # Try to check coverage status
-            if check_coverage_completion; then
-                COVERAGE_FOUND=true
-                echo "95% map coverage confirmed after logger exit."
-                break
-            else
-                echo "Error: Logger process ended but coverage not reached."
-                kill -9 $WEBOTS_PID $ROS2_PID $CPU_MONITOR_PID 2>/dev/null
-                exit 1
-            fi
+        echo "Checking for coverage completion..."
+        COVERAGE_COMPLETE=$(ros2 topic echo --once --timeout 3 /coverage_complete 2>/dev/null | grep "data: true" || true)
+        if [ -n "$COVERAGE_COMPLETE" ]; then
+            echo "Coverage completion message received!"
+            COVERAGE_FOUND=true
+            return 0
         fi
         
         # Wait a bit before checking again
-        sleep 5
+        sleep 2
     done
 
     # Step 6: Stop cpu monitor, save map and run evaluation scripts
