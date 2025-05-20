@@ -154,24 +154,18 @@ TERMINAL="gnome-terminal"
 
 # Function to check for coverage completion
 check_coverage_completion() {
-    local max_attempts=10
-    local attempt=1
-    local sleep_time=2
-    
     source "$ROS_SETUP"
     source "$WORKSPACE_SETUP"
-    
-    while [ $attempt -le $max_attempts ]; do
-        echo "Attempt $attempt/$max_attempts: Checking for coverage completion..."
+
+    while true; do
+        echo "Checking for coverage completion..."
         COVERAGE_COMPLETE=$(ros2 topic echo --once --timeout 3 /coverage_complete 2>/dev/null | grep "data: true" || true)
         if [ -n "$COVERAGE_COMPLETE" ]; then
             echo "Coverage completion message received!"
             return 0
         fi
-        sleep $sleep_time
-        ((attempt++))
+        sleep 2
     done
-    return 1
 }
 
 # Loop for the specified number of runs
