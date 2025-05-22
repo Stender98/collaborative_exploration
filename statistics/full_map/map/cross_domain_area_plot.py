@@ -6,9 +6,8 @@ from matplotlib.gridspec import GridSpec
 
 # List of CSV files to process
 # Define swarm sizes and number of runs
-swarm_sizes = [5, 8, 13]
-num_runs = 3
-approach = "decentralised"
+swarm_sizes = [5, 8, 13, 5, 8, 13]
+approaches = ["centralised", "centralised", "centralised", "decentralised", "decentralised", "decentralised"]
 
 # Function to read and process a single CSV file
 def read_csv_file(file_path):
@@ -44,7 +43,7 @@ ax_robots = fig.add_subplot(gs[1], sharex=ax_coverage)
 
 # Set up colors and markers
 colors = plt.cm.tab10(np.linspace(0, 1, len(swarm_sizes)))
-markers = ['o', 's', 'D', '^', 'v', '<', '>', 'p', '*', 'h']
+markers = ['o', 's', 'D']
 
 # Track all dataframes for statistics
 all_dfs = []
@@ -52,13 +51,13 @@ legend_entries = []
 
 # Process each CSV file
 for i, swarm_size in enumerate(swarm_sizes):
-    file_path = os.path.join(approach, f'{approach}_swarm{swarm_size}_avg_coverage.csv')
+    file_path = os.path.join(approaches[i], f'{approaches[i]}_swarm{swarm_size}_avg_coverage.csv')
     if not os.path.exists(file_path):
         print(f"File {file_path} not found. Skipping.")
         continue
     
     # Extract trial number for labeling
-    trial_name = f"Swarm size {swarm_size}"
+    trial_name = f"{approaches[i].capitalize()} Swarm size {swarm_size}"
     
     df = read_csv_file(file_path)
     if df is None or df.empty:
@@ -66,12 +65,16 @@ for i, swarm_size in enumerate(swarm_sizes):
         continue
     
     all_dfs.append(df)
+
+    colorIdx = 2
+    if i > 2:
+        colorIdx = 4
     
     # Plot coverage percentage on top subplot
     line_coverage = ax_coverage.plot(
         df['Time(s)'],
         df['Coverage(%)'],
-        color=colors[i],
+        color=colors[colorIdx],
         marker=markers[i % len(markers)],
         markevery=max(1, len(df)//20),
         linewidth=2,
@@ -82,7 +85,7 @@ for i, swarm_size in enumerate(swarm_sizes):
     line_robots = ax_robots.plot(
         df['Time(s)'],
         df['Number of running robots'],
-        color=colors[i],
+        color=colors[colorIdx],
         marker=markers[i % len(markers)],
         markevery=max(1, len(df)//20),
         linewidth=2,
@@ -93,9 +96,9 @@ for i, swarm_size in enumerate(swarm_sizes):
     legend_entries.append((line_coverage[0], f"{trial_name}"))
 
 # Set labels and titles
-ax_coverage.set_ylabel('Coverage (%)')
-ax_coverage.set_xlabel('Time (s)', x=0.05)
-ax_coverage.set_title(f'Map Coverage Over Time For {approach.capitalize()} Approach')
+ax_coverage.set_xlabel('Coverage (%)')
+ax_coverage.set_ylabel('Time (s)', x=0.05)
+ax_coverage.set_title(f'Compared Map Coverage Over Time For Both Approaches')
 ax_coverage.grid(True)
 
 ax_robots.set_xlabel('Time (s)', x=0.05)
@@ -107,7 +110,7 @@ ax_robots.grid(True)
 if legend_entries:
     ax_coverage.legend([entry[0] for entry in legend_entries], 
                        [entry[1] for entry in legend_entries],
-                       loc='upper left')
+                       loc='lower right')
 
 # Calculate and show statistics
 if all_dfs:
@@ -123,5 +126,5 @@ if all_dfs:
                 ha='center', fontsize=10, bbox=dict(boxstyle="round,pad=0.5", fc="white", alpha=0.8))
 
 plt.tight_layout()
-plt.savefig(f'{approach}/robots_coverage_plot.png')
+plt.savefig('./combined_robots_coverage_plot.png')
 print(f"Combined plot saved as 'coverage_and_robots_plot.png'")

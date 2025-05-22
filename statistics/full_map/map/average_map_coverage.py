@@ -6,7 +6,7 @@ from pathlib import Path
 # Define swarm sizes and number of runs
 swarm_sizes = [5, 8, 13]
 num_runs = 3
-approach = "centralised"
+approach = "decentralised"
 
 # Function to read and process a single coverage.csv file
 def read_coverage_file(file_path):
