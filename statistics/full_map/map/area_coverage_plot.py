@@ -4,11 +4,22 @@ import os
 import numpy as np
 from matplotlib.gridspec import GridSpec
 
+# Set global font sizes for matplotlib
+plt.rcParams.update({
+    'font.size': 20,          # Base font size
+    'axes.titlesize': 24,     # Title font size
+    'axes.labelsize': 12,     # Axis label font size
+    'xtick.labelsize': 20,    # X-axis tick label size
+    'ytick.labelsize': 20,    # Y-axis tick label size
+    'legend.fontsize': 20,    # Legend font size
+    'figure.titlesize': 26    # Figure title font size
+})
+
 # List of CSV files to process
 # Define swarm sizes and number of runs
 swarm_sizes = [5, 8, 13]
 num_runs = 3
-approach = "decentralised"
+approach = "centralised"
 
 # Function to read and process a single CSV file
 def read_csv_file(file_path):
@@ -33,8 +44,8 @@ def read_csv_file(file_path):
         return None
 
 # Create a single figure with two subplots using GridSpec
-fig = plt.figure(figsize=(14, 10))
-gs = GridSpec(2, 1, height_ratios=[2, 1], hspace=0.5)
+fig = plt.figure(figsize=(16, 12))  # Increased figure size to accommodate larger fonts
+gs = GridSpec(2, 1, height_ratios=[2, 1], hspace=0.6)  # Increased spacing
 
 # Top subplot for coverage percentage
 ax_coverage = fig.add_subplot(gs[0])
@@ -74,7 +85,8 @@ for i, swarm_size in enumerate(swarm_sizes):
         color=colors[i],
         marker=markers[i % len(markers)],
         markevery=max(1, len(df)//20),
-        linewidth=2,
+        linewidth=3,  # Increased line width for better visibility
+        markersize=8,  # Increased marker size
         label=trial_name
     )
     
@@ -85,29 +97,31 @@ for i, swarm_size in enumerate(swarm_sizes):
         color=colors[i],
         marker=markers[i % len(markers)],
         markevery=max(1, len(df)//20),
-        linewidth=2,
+        linewidth=3,  # Increased line width for better visibility
+        markersize=8,  # Increased marker size
         label=trial_name
     )
     
     # Store legend entries
     legend_entries.append((line_coverage[0], f"{trial_name}"))
 
-# Set labels and titles
+# Set labels and titles - removed explicit fontsize to use rcParams
 ax_coverage.set_ylabel('Coverage (%)')
-ax_coverage.set_xlabel('Time (s)', x=0.05)
-ax_coverage.set_title(f'Map Coverage Over Time For {approach.capitalize()} Approach')
-ax_coverage.grid(True)
+ax_coverage.set_xlabel('Time (s)')
+ax_coverage.set_title(f'Map Coverage Over Time For {approach.capitalize()} Approach', pad=20)
+ax_coverage.grid(True, alpha=0.7)
 
-ax_robots.set_xlabel('Time (s)', x=0.05)
+ax_robots.set_xlabel('Time (s)')
 ax_robots.set_ylabel('Number of Running Robots')
-ax_robots.set_title('Active Robot Count Over Time')
-ax_robots.grid(True)
+ax_robots.set_title('Active Robot Count Over Time', pad=20)
+ax_robots.grid(True, alpha=0.7)
 
-# Add a single legend for both plots in the top subplot
+# Add a single legend for both plots in the top subplot - removed explicit fontsize
 if legend_entries:
-    ax_coverage.legend([entry[0] for entry in legend_entries], 
-                       [entry[1] for entry in legend_entries],
-                       loc='upper left')
+    legend = ax_coverage.legend([entry[0] for entry in legend_entries], 
+                               [entry[1] for entry in legend_entries],
+                               loc='lower right', framealpha=0.9)
+    legend.get_frame().set_linewidth(1.5)
 
 # Calculate and show statistics
 if all_dfs:
@@ -117,11 +131,16 @@ if all_dfs:
     min_final = min(final_coverages)
     max_final = max(final_coverages)
     
-    # Add text annotation with statistics
+    # Add text annotation with statistics - removed explicit fontsize to use base font
     stat_text = f"Final Coverage: Avg={avg_final:.2f}%, Min={min_final:.2f}%, Max={max_final:.2f}%"
-    ax_coverage.annotate(stat_text, xy=(0.5, -0.15), xycoords='axes fraction', 
-                ha='center', fontsize=10, bbox=dict(boxstyle="round,pad=0.5", fc="white", alpha=0.8))
+    ax_coverage.annotate(stat_text, xy=(0.5, -0.18), xycoords='axes fraction', 
+                ha='center', 
+                bbox=dict(boxstyle="round,pad=0.8", fc="white", alpha=0.9, edgecolor='black'))
+
+# Adjust tick parameters - removed explicit labelsize to use rcParams
+ax_coverage.tick_params(axis='both', which='major', width=1.5, length=6)
+ax_robots.tick_params(axis='both', which='major', width=1.5, length=6)
 
 plt.tight_layout()
-plt.savefig(f'{approach}/robots_coverage_plot.png')
-print(f"Combined plot saved as 'coverage_and_robots_plot.png'")
+plt.savefig(f'{approach}/robots_coverage_plot.png', dpi=300, bbox_inches='tight')  # Higher DPI for better quality
+print(f"Combined plot saved as 'robots_coverage_plot.png'")
