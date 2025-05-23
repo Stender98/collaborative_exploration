@@ -8,7 +8,7 @@ from matplotlib.gridspec import GridSpec
 plt.rcParams.update({
     'font.size': 20,          # Base font size
     'axes.titlesize': 24,     # Title font size
-    'axes.labelsize': 12,     # Axis label font size
+    'axes.labelsize': 16,     # Axis label font size
     'xtick.labelsize': 20,    # X-axis tick label size
     'ytick.labelsize': 20,    # Y-axis tick label size
     'legend.fontsize': 20,    # Legend font size
@@ -19,7 +19,7 @@ plt.rcParams.update({
 # Define swarm sizes and number of runs
 swarm_sizes = [5, 8, 13]
 num_runs = 3
-approach = "centralised"
+approach = "decentralised"
 
 # Function to read and process a single CSV file
 def read_csv_file(file_path):
@@ -116,6 +116,9 @@ ax_robots.set_ylabel('Number of Running Robots')
 ax_robots.set_title('Active Robot Count Over Time', pad=20)
 ax_robots.grid(True, alpha=0.7)
 
+ax_coverage.xaxis.set_label_coords(0.05, -0.1)
+ax_robots.xaxis.set_label_coords(0.05, -0.2)
+
 # Add a single legend for both plots in the top subplot - removed explicit fontsize
 if legend_entries:
     legend = ax_coverage.legend([entry[0] for entry in legend_entries], 
@@ -133,7 +136,7 @@ if all_dfs:
     
     # Add text annotation with statistics - removed explicit fontsize to use base font
     stat_text = f"Final Coverage: Avg={avg_final:.2f}%, Min={min_final:.2f}%, Max={max_final:.2f}%"
-    ax_coverage.annotate(stat_text, xy=(0.5, -0.18), xycoords='axes fraction', 
+    ax_coverage.annotate(stat_text, xy=(0.5, -0.25), xycoords='axes fraction', 
                 ha='center', 
                 bbox=dict(boxstyle="round,pad=0.8", fc="white", alpha=0.9, edgecolor='black'))
 
