@@ -1,0 +1,63 @@
+%%{init: {'theme':'base', 'themeVariables': {'fontSize': '26px', 'fontFamily': 'Arial, sans-serif'}}}%%
+flowchart TD
+
+    %% Soft, publication-friendly color scheme with larger font
+    classDef terminal fill:#f9d6d5,stroke:#999,stroke-width:1.2px,color:#333,font-weight:bold,font-size:30px;
+    classDef process fill:#f0f4f9,stroke:#777,stroke-width:1.5px,color:#333,font-weight:bold,font-size:30px;
+    classDef decision fill:#fdf6d3,stroke:#777,stroke-width:1.5px,color:#333,font-style:italic,font-size:30px;
+    classDef topic fill:#e8f5e9,stroke:#666,stroke-width:1.5px,color:#333,font-size:30px;
+    classDef connector stroke:#666,stroke-width:1.2px,stroke-dasharray: 8 8;
+
+    %% White background for publication
+    style epuck fill:#ffffff,stroke:#aaa,stroke-width:1px;
+
+    subgraph epuck["EPuckController Node"]
+
+        A[Robot Initialization] --> B[Robot Sensors & Motors Setup]
+        B --> C[ROS2 Publishers/Subscribers Setup]
+        C --> D[Launch frontier controller]
+        D --> E[Main Control Loop]
+
+        E --> F{Check Nav2 Activity}
+        F -- "Active" --> G[Use Nav2 Velocity Commands]
+        F -- "Inactive" --> H[No Movement]
+
+        G --> I[Apply Motor Speeds]
+        H --> I
+        I --> J[Publish Robot State]
+
+        J --> K{Check for Movement Progress}
+        K -- "Stuck Timeout" --> L[Publish Terminated]
+        L --> M[Terminate Robot]
+        K -- "Moving" --> E
+
+        C --> N((ROS2 
+        Topic
+        Publishers))
+
+        C --> O((ROS2 
+        Topic
+        Subscribers))
+
+        %% ROS2 Topic Connections
+        N --> SCAN_CONN[/"robotX/scan"/]
+        N --> ODOM_CONN[/"robotX/odom"/]
+        N --> CLOCK_CONN[/"clock"/]
+        L --> Ter_CONN[/"robotX/terminated"/]
+        O --> CMD_CONN
+        CMD_CONN[/"cmd_vel from Nav2"/] --> G
+
+        L1[Process Step]:::process
+        L2{Decision Node}:::decision
+        L3((ROS2 Topic)):::topic
+        L4[Terminal State]:::terminal
+
+    end
+
+
+    %% Apply classes to nodes
+    class A,B,C,D,E,G,H,I,J process
+    class F,K decision
+    class M,L terminal
+    class O,N,CMD_CONN,SCAN_CONN,ODOM_CONN,CLOCK_CONN,Ter_CONN topic
+    class Ter_CONN,CLOCK_CONN,SCAN_CONN,ODOM_CONN,CMD_CONN connector

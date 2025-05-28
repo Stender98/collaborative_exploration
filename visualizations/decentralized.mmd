@@ -1,0 +1,81 @@
+%%{init: {'theme':'base', 'themeVariables': {'fontSize': '30px', 'fontFamily': 'Arial, sans-serif'}}}%%
+flowchart TD
+
+    %% Soft, publication-friendly color scheme
+    classDef terminal fill:#f9d6d5,stroke:#999,stroke-width:1.2px,color:#333,font-weight:bold;
+    classDef process fill:#f0f4f9,stroke:#777,stroke-width:1.5px,color:#333,font-weight:bold;
+    classDef decision fill:#fdf6d3,stroke:#777,stroke-width:1.5px,color:#333,font-style:italic;
+    classDef topic fill:#e8f5e9,stroke:#666,stroke-width:1.5px,color:#333;
+    classDef connector stroke:#666,stroke-width:1.2px,stroke-dasharray: 4 4;
+    classDef state fill:#d4e6f1,stroke:#3498db,stroke-width:1.8px,color:#333,font-weight:bold;
+
+    %% White background for publication
+    style epuck fill:#ffffff,stroke:#aaa,stroke-width:1px;
+
+    subgraph epuck["EPuckController Node"]
+        %% Initialization
+        INIT[Robot & ROS2 Initialization] --> SETUP[Sensors & Motors Setup]
+        SETUP --> MAIN_LOOP[Main Control Loop]
+        
+        %% Main loop
+        MAIN_LOOP --> TIME_SYNC[Sync ROS Clock]
+        TIME_SYNC --> PUB_DATA[Publish LiDAR, Odometry & TF]
+        PUB_DATA --> BROADCAST[Broadcast Presence]
+        
+        %% State management
+        BROADCAST --> CHECK_TIMER{State Timer 
+        Expired?}
+        
+        CHECK_TIMER -- No --> UPDATE_STATE[Update State Timer]
+        CHECK_TIMER -- Yes --> CHECK_OBSTACLE{Obstacle
+        Detected?}
+        
+        CHECK_OBSTACLE -- Yes --> SET_AVOID_OBSTACLE[Set to AVOID_OBSTACLE State]
+        CHECK_OBSTACLE -- No --> SET_RANDOM_WALK[Set to RANDOM_WALK State]
+ 
+        SET_AVOID_OBSTACLE --> RESET_TIMER
+        SET_RANDOM_WALK --> RESET_TIMER
+        
+        UPDATE_STATE --> FSM_STATES
+        RESET_TIMER --> FSM_STATES
+        
+        %% FSM states execution
+        FSM_STATES{Current 
+        State?}:::decision
+        
+        FSM_STATES -- AVOID_OBSTACLE --> AVOID_O[Calculate Obstacle Avoidance Velocities]
+        FSM_STATES -- RANDOM_WALK --> RANDOM_W[Calculate Random Walk Velocities]
+        
+        AVOID_O --> SET_MOTORS
+        RANDOM_W --> SET_MOTORS
+        
+        %% Movement tracking
+        SET_MOTORS --> MOVEMENT_CHECK{Check Movement
+        Progress}
+        
+        MOVEMENT_CHECK -- Moving --> MAIN_LOOP
+        MOVEMENT_CHECK -- "Stuck > STUCK_TIMEOUT" --> TERMINATE[Publish Terminated & Cleanup]:::terminal
+        
+        %% ROS2 Topics
+        PUB_DATA --> TOPICS((ROS2 
+        Topics)):::topic
+        TOPICS --> SCAN[/"robotX/scan"/]:::topic
+        TOPICS --> ODOM[/"robotX/odom"/]:::topic
+        TOPICS --> CLOCK[/"clock"/]:::topic
+        TERMINATE --> TERM_TOPIC[/"/terminated"/]:::topic
+        
+        %% Legend
+        L1[Process Step]:::process
+        L2{Decision Node}:::decision
+        L3((ROS2 Topic)):::topic
+        L4[Terminal State]:::terminal
+        L5[FSM State]:::state
+    end
+
+    %% Apply classes to nodes
+    class INIT,SETUP,MAIN_LOOP,TIME_SYNC,PUB_DATA,BROADCAST,UPDATE_STATE,RESET_TIMER,SET_MOTORS process
+    class CHECK_TIMER,CHECK_ROBOT,CHECK_OBSTACLE,CHECK_WALL,MOVEMENT_CHECK,FSM_STATES decision
+    class SET_AVOID_ROBOT,SET_AVOID_OBSTACLE,SET_FOLLOW_WALL,SET_RANDOM_WALK,AVOID_R,AVOID_O,FOLLOW_W,RANDOM_W state
+    class TERMINATE terminal
+    class TOPICS topic
+    class SCAN,ODOM,CLOCK,TERM_TOPIC connector

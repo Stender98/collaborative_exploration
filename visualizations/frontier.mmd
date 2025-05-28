@@ -1,0 +1,82 @@
+%%{init: {'theme':'base', 'themeVariables': {'fontSize': '30px', 'fontFamily': 'Arial, sans-serif'}}}%%
+flowchart TD
+
+    %% Soft, publication-friendly color scheme
+    classDef terminal fill:#f9d6d5,stroke:#999,stroke-width:1.2px,color:#333,font-weight:bold;
+    classDef process fill:#f0f4f9,stroke:#777,stroke-width:1.5px,color:#333,font-weight:bold;
+    classDef decision fill:#fdf6d3,stroke:#777,stroke-width:1.5px,color:#333,font-style:italic;
+    classDef topic fill:#e8f5e9,stroke:#666,stroke-width:1.5px,color:#333;
+    classDef connector stroke:#666,stroke-width:1.2px,stroke-dasharray: 4 4;
+
+    %% White background for publication with extra padding
+    style frontier fill:#ffffff,stroke:#aaa,stroke-width:1px;
+
+    subgraph frontier["FrontierExploration Node"]
+        direction TB
+        
+        TITLE["FrontierExploration Node"]:::title
+        
+        A[Node Initialization] --> B[Setup Nav2 Action Client]
+        B --> C[Setup Publishers/Subscribers]
+        C --> E[Setup Frontier Check Timer]
+        E --> F[Wait for Map Update]
+
+        F --> G{Map Ready?}
+        G -- "Yes" --> H[Find Frontier]
+        G -- "No" --> F
+
+        H --> I{Frontier Found?}
+        I -- "Yes" --> J[Score & Select Frontier]
+        I -- "No" --> F
+
+        J --> K[Publish Assigned Frontier]
+        K --> L[Send Nav2 Goal]
+        L --> M[Wait for Goal Response]
+
+        M --> N{Goal Accepted?}
+        N -- "Yes" --> O[Monitor Goal Progress]
+        N -- "No" --> P[Reset & Wait for Map]
+
+        O --> Q{Goal Still Frontier?}
+        Q -- "Yes" --> R{Goal Status?}
+        Q -- "No" --> S[Cancel Goal]
+        S --> P
+
+        R -- "Succeeded" --> P
+        R -- "Canceled/Aborted" --> P
+        R -- "Active" --> O
+
+        P --> F
+
+        C --> T((ROS2
+        Topic
+        subscriptions))
+
+        C --> U((ROS2
+        Topic
+        publishers))
+
+        %% ROS2 Topic Connections
+        T --> MAP_CONN[/"robotX/global_costmap/costmap"/]
+        T --> FRONTIER_IN[/"assigned_frontiers"/]
+        T --> TF_IN[/"/tf"/]
+        U --> GOAL_CONN[/"robotX/goal"/]
+        U --> NAVTO_CONN[/"robotX/navigate_to_pose"/]
+        U --> ASSIGNED_CONN[/"assigned_frontiers"/]
+        K --> FRONTIER_OUT[/"assigned_frontiers"/]
+        L --> GOAL_OUT[/"robotX/goal"/]
+        L --> NAV2_ACTION[/"robotX/navigate_to_pose"/]
+
+        L1[Process Step]:::process
+        L2{Decision Node}:::decision
+        L3((ROS2 Topic)):::topic
+        L4[Terminal State]:::terminal
+
+    end
+
+    %% Apply classes to nodes
+    classDef title fill:#e6f3ff,stroke:#333,stroke-width:2px,color:#333,font-weight:bold,font-size:24px;
+    class A,B,C,D,E,F,H,J,K,L,M,O,P,S process
+    class G,I,N,Q,R decision
+    class U,T,MAP_CONN,FRONTIER_IN,FRONTIER_OUT,GOAL_OUT,NAV2_ACTION,TF_IN,GOAL_CONN,NAVTO_CONN,ASSIGNED_CONN topic
+    class MAP_CONN,FRONTIER_IN,FRONTIER_OUT,GOAL_OUT,NAV2_ACTION connector

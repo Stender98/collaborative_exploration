@@ -1,5 +1,17 @@
 flowchart TD
-    subgraph "EPuckController Node"
+    %% More refined professional color scheme with better readability
+    classDef controllerNode fill:#f5f9ff,stroke:#4a6fa5,stroke-width:2px;
+    classDef controllerBox fill:#5d87c1,stroke:#3b5998,stroke-width:1px,color:white,font-weight:bold;
+    classDef controllerDiamond fill:#d4e2f9,stroke:#4a6fa5,stroke-width:1px,color:#2c3e50,font-weight:bold;
+    classDef controllerCircle fill:#d4e2f9,stroke:#4a6fa5,stroke-width:1.5px,color:#2c3e50,font-weight:bold;
+    classDef controllerTerminal fill:#d95350,stroke:#a23835,stroke-width:1px,color:white,font-weight:bold;
+    
+    classDef explorationNode fill:#f7fcf5,stroke:#2c784e,stroke-width:2px;
+    classDef explorationBox fill:#5a9178,stroke:#2c784e,stroke-width:1px,color:white,font-weight:bold;
+    classDef explorationDiamond fill:#d4f5e9,stroke:#2c784e,stroke-width:1px,color:#2c3e50,font-weight:bold;
+    classDef explorationCircle fill:#d4f5e9,stroke:#2c784e,stroke-width:1.5px,color:#2c3e50,font-weight:bold;
+    
+    subgraph epuck["EPuckController Node"]
         A[Robot Initialization] --> B[Robot Sensors & Motors Setup]
         B --> C[ROS2 Publishers/Subscribers Setup]
         C --> D[Main Control Loop]
@@ -9,14 +21,14 @@ flowchart TD
         F --> H[Apply Motor Speeds]
         G --> H
         H --> I[Publish Robot State]
-        I --> J[Check for Movement Progress]
+        I --> J{Check for Movement Progress}
         J -- "Stuck Timeout" --> K[Terminate Robot]
         J -- "Moving" --> D
         
         I --> |"Odometry\nLiDAR Scan\nTF\nClock"| L((ROS2\nTopics))
     end
     
-    subgraph "FrontierExploration Node"
+    subgraph frontier["FrontierExploration Node"]
         M[Initialize Exploration] --> N[Setup Nav2 Action Client]
         N --> O[Subscribe to Map & Frontiers]
         O --> P{Map Update}
@@ -42,6 +54,18 @@ flowchart TD
         EE --> P
     end
     
+    %% Connections between subgraphs
     L -- "Map/Scan" --> P
     L -- "Odometry" --> P
     L <-- "cmd_vel" --> F
+    
+    %% Apply styles
+    class epuck controllerNode
+    class frontier explorationNode
+    class A,B,C,D,F,G,H,I controllerBox
+    class E,J controllerDiamond
+    class K controllerTerminal
+    class L controllerCircle
+    class M,N,O,Q,S,T,U,V,X,Y,BB,CC,EE explorationBox
+    class P,R,W,Z,DD explorationDiamond
+    class AA explorationCircle
