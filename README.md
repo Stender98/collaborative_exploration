@@ -1,4 +1,4 @@
-# TBD project title
+# Scalable Swarm Control for Collective Exploration: A Comparative Study of Centralised and Decentralised Architectures
 Prerequisite software:
 - This project has been tested and build on Ubuntu 24.04 LTS (but the software used is also supported on Windows 10 or macOS.) 
 - [Webots](https://cyberbotics.com/)
